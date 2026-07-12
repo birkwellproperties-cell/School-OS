@@ -17,7 +17,7 @@ function NavigationLink({ item, onNavigate }) {
   return (
     <NavLink
       to={item.path}
-      end={item.path === "/"}
+      end={item.path === "/app"}
       onClick={onNavigate}
       className={({ isActive }) =>
         [
@@ -37,7 +37,7 @@ function NavigationLink({ item, onNavigate }) {
 function getCurrentPage(pathname) {
   return (
     navigationItems.find((item) =>
-      item.path === "/" ? pathname === "/" : pathname.startsWith(item.path),
+      item.path === "/app" ? pathname === "/app" : pathname.startsWith(item.path),
     )?.label || "SchoolOS"
   );
 }
@@ -160,7 +160,7 @@ export default function AppShell() {
                 </p>
 
                 <p className="truncate text-xs font-semibold text-slate-500">
-                  Pointer Hill Academy · 2026 Academic Year
+                  Pointer Hill Academy Â· 2026 Academic Year
                 </p>
               </div>
             </div>

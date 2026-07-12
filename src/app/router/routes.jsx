@@ -1,15 +1,33 @@
 import { createBrowserRouter } from "react-router-dom";
 
 import AppShell from "../AppShell";
+
+import {
+  AuthenticatedRoute,
+  ProtectedRoute,
+  PublicOnlyRoute,
+} from "../../platform/auth";
+
+import AccountPendingPage from "../../modules/authentication/AccountPendingPage";
+import ForgotPasswordPage from "../../modules/authentication/ForgotPasswordPage";
+import LoginPage from "../../modules/authentication/LoginPage";
+import ResetPasswordPage from "../../modules/authentication/ResetPasswordPage";
+
 import CommandCenter from "../../modules/command-center/CommandCenter";
-import ModulePlaceholder from "../../shared/components/ModulePlaceholder";
 import DesignLab from "../../modules/design-lab/DesignLab";
 
-const placeholderPages = {
+import PublicSiteLayout from "../../public-site/layouts/PublicSiteLayout";
+import LandingPage from "../../public-site/pages/LandingPage";
+import NotFoundPage from "../../public-site/pages/NotFoundPage";
+import PublicPagePlaceholder from "../../public-site/pages/PublicPagePlaceholder";
+
+import ModulePlaceholder from "../../shared/components/ModulePlaceholder";
+
+const applicationPages = {
   admissions: {
     title: "Admissions Center",
     description:
-      "Manage inquiries, student applications, document verification, interviews, admission decisions, offers, and enrollment conversion.",
+      "Manage inquiries, applications, document verification, assessments, interviews, admission decisions, offers, and enrollment.",
   },
   students: {
     title: "Student Center",
@@ -19,32 +37,32 @@ const placeholderPages = {
   academics: {
     title: "Academic Center",
     description:
-      "Configure academic years, terms, classes, sections, subjects, teacher assignments, examinations, grades, and report cards.",
+      "Configure academic years, terms, classes, sections, subjects, assignments, examinations, grading, and report cards.",
   },
   attendance: {
     title: "Attendance Center",
     description:
-      "Record daily attendance, monitor absences and late arrivals, notify guardians, and analyze attendance risk.",
+      "Record student attendance, monitor absences and late arrivals, notify guardians, and analyze attendance risk.",
   },
   finance: {
     title: "Finance Center",
     description:
-      "Manage fee structures, invoices, payments, receipts, scholarships, discounts, expenses, budgets, and financial reporting.",
+      "Manage fee structures, invoices, payments, receipts, scholarships, expenses, budgets, and financial reporting.",
   },
   procurement: {
     title: "Procurement Center",
     description:
-      "Manage purchase requests, approvals, supplier quotations, purchase orders, goods receiving, invoice matching, and payment approval.",
+      "Manage purchase requests, approvals, quotations, purchase orders, receiving, invoice matching, and payment approval.",
   },
   inventory: {
     title: "Inventory & Assets",
     description:
       "Track consumables, textbooks, uniforms, equipment, fixed assets, stock movements, maintenance, and work orders.",
   },
-  staff: {
-    title: "Staff & HR Center",
+  "human-resources": {
+    title: "Human Resources",
     description:
-      "Manage staff profiles, contracts, departments, assignments, attendance, leave, payroll records, and performance.",
+      "Manage employees, departments, positions, recruitment, onboarding, contracts, leave, attendance, performance, and training.",
   },
   communications: {
     title: "Communications Center",
@@ -54,17 +72,98 @@ const placeholderPages = {
   reports: {
     title: "Reports Center",
     description:
-      "Produce academic, financial, attendance, procurement, inventory, staff, and executive reports.",
+      "Produce academic, financial, attendance, procurement, inventory, HR, and executive reports.",
   },
   settings: {
     title: "Settings",
     description:
-      "Configure the school, academic calendar, users, permissions, notifications, integrations, security, backups, and subscriptions.",
+      "Configure organizations, schools, campuses, users, permissions, notifications, integrations, security, and subscriptions.",
   },
 };
 
-function PlaceholderPage({ page }) {
-  const config = placeholderPages[page];
+const publicPages = [
+  {
+    path: "platform",
+    eyebrow: "Platform",
+    title: "One governed platform for every institutional operation.",
+    description:
+      "Explore the architecture, services, workflows, modules, and enterprise controls powering SchoolOS.",
+  },
+  {
+    path: "solutions",
+    eyebrow: "Solutions",
+    title: "Built for schools, groups, campuses, and education networks.",
+    description:
+      "See how SchoolOS supports independent schools, multi-campus organizations, education groups, and institutional operators.",
+  },
+  {
+    path: "pricing",
+    eyebrow: "Pricing",
+    title: "Plans designed around institutional scale and capability.",
+    description:
+      "Compare SchoolOS editions for growing schools, professional institutions, enterprise groups, and government deployments.",
+  },
+  {
+    path: "security",
+    eyebrow: "Security",
+    title:
+      "Enterprise identity, tenant isolation, permissions, and auditability.",
+    description:
+      "Review the security model protecting organizations, schools, campuses, users, and institutional information.",
+  },
+  {
+    path: "resources",
+    eyebrow: "Resources",
+    title: "Documentation and resources for SchoolOS institutions.",
+    description:
+      "Access product documentation, implementation guides, security resources, platform updates, and support materials.",
+  },
+  {
+    path: "contact",
+    eyebrow: "Contact",
+    title: "Speak with the SchoolOS enterprise team.",
+    description:
+      "Connect with Tavaro Group about platform access, implementation, partnerships, support, and enterprise deployment.",
+  },
+  {
+    path: "request-access",
+    eyebrow: "Controlled onboarding",
+    title: "Request SchoolOS platform access.",
+    description:
+      "Submit your organization for Tavaro review. Approved institutions receive a secure onboarding invitation.",
+  },
+  {
+    path: "about",
+    eyebrow: "About",
+    title: "Enterprise technology for modern institutions.",
+    description:
+      "Learn about Tavaro Group LLC and the vision, governance, and engineering standards behind SchoolOS.",
+  },
+  {
+    path: "privacy",
+    eyebrow: "Legal",
+    title: "SchoolOS privacy policy.",
+    description:
+      "Review how SchoolOS and Tavaro Group protect organizational, user, and institutional information.",
+  },
+  {
+    path: "terms",
+    eyebrow: "Legal",
+    title: "SchoolOS terms and conditions.",
+    description:
+      "Review the terms governing access to and use of the SchoolOS Enterprise platform.",
+  },
+  {
+    path: "status",
+    eyebrow: "Platform status",
+    title: "SchoolOS service status.",
+    description:
+      "View platform availability, maintenance notices, service health, and operational updates.",
+  },
+];
+
+function ApplicationPlaceholder({ page }) {
+  const config = applicationPages[page];
 
   return (
     <ModulePlaceholder
@@ -77,20 +176,80 @@ function PlaceholderPage({ page }) {
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <AppShell />,
+    element: <PublicSiteLayout />,
     children: [
       {
         index: true,
-        element: <CommandCenter />,
+        element: <LandingPage />,
       },
-      {
-        path: "design-lab",
-        element: <DesignLab />,
-      },
-      ...Object.keys(placeholderPages).map((page) => ({
-        path: page,
-        element: <PlaceholderPage page={page} />,
+      ...publicPages.map((page) => ({
+        path: page.path,
+        element: (
+          <PublicPagePlaceholder
+            eyebrow={page.eyebrow}
+            title={page.title}
+            description={page.description}
+          />
+        ),
       })),
     ],
+  },
+
+  {
+    element: <PublicOnlyRoute />,
+    children: [
+      {
+        path: "/login",
+        element: <LoginPage />,
+      },
+      {
+        path: "/forgot-password",
+        element: <ForgotPasswordPage />,
+      },
+    ],
+  },
+
+  {
+    path: "/reset-password",
+    element: <ResetPasswordPage />,
+  },
+
+  {
+    element: <AuthenticatedRoute />,
+    children: [
+      {
+        path: "/account-pending",
+        element: <AccountPendingPage />,
+      },
+    ],
+  },
+
+  {
+    element: <ProtectedRoute />,
+    children: [
+      {
+        path: "/app",
+        element: <AppShell />,
+        children: [
+          {
+            index: true,
+            element: <CommandCenter />,
+          },
+          {
+            path: "design-lab",
+            element: <DesignLab />,
+          },
+          ...Object.keys(applicationPages).map((page) => ({
+            path: page,
+            element: <ApplicationPlaceholder page={page} />,
+          })),
+        ],
+      },
+    ],
+  },
+
+  {
+    path: "*",
+    element: <NotFoundPage />,
   },
 ]);
