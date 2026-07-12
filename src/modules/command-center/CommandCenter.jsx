@@ -18,7 +18,7 @@ const metrics = [
     label: "Active Students",
     value: "0",
     helper: "No students enrolled yet",
-    tone: "teal",
+    tone: "violet",
     icon: GraduationCap,
   },
   {
@@ -61,8 +61,8 @@ const metrics = [
 export default function CommandCenter() {
   return (
     <div className="space-y-6">
-      <section className="rounded-[30px] bg-slate-950 p-6 text-white shadow-xl sm:p-8">
-        <p className="text-xs font-black uppercase tracking-[0.24em] text-teal-300">
+      <section className="overflow-hidden rounded-[30px] border border-blue-200 bg-gradient-to-br from-blue-600 via-blue-500 to-sky-400 p-6 text-white shadow-lg sm:p-8">
+        <p className="text-xs font-black uppercase tracking-[0.24em] text-blue-100">
           Executive Operations
         </p>
 
@@ -70,7 +70,7 @@ export default function CommandCenter() {
           School Command Center
         </h1>
 
-        <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-slate-300 sm:text-base">
+        <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-blue-50 sm:text-base">
           Monitor enrollment, attendance, finance, procurement, staffing, and
           institutional risk from one operational workspace.
         </p>

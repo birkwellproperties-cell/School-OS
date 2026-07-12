@@ -3,6 +3,7 @@ import { createBrowserRouter } from "react-router-dom";
 import AppShell from "../AppShell";
 import CommandCenter from "../../modules/command-center/CommandCenter";
 import ModulePlaceholder from "../../shared/components/ModulePlaceholder";
+import DesignLab from "../../modules/design-lab/DesignLab";
 
 const placeholderPages = {
   admissions: {
@@ -81,6 +82,10 @@ export const router = createBrowserRouter([
       {
         index: true,
         element: <CommandCenter />,
+      },
+      {
+        path: "design-lab",
+        element: <DesignLab />,
       },
       ...Object.keys(placeholderPages).map((page) => ({
         path: page,

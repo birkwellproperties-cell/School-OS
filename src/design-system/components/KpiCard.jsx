@@ -1,44 +1,33 @@
 const tones = {
   slate: {
-    border: "border-slate-200",
-    background: "bg-white",
+    shell: "border-slate-200 bg-white",
+    icon: "bg-slate-100 text-slate-700",
     label: "text-slate-500",
-    value: "text-slate-950",
   },
-
-  teal: {
-    border: "border-teal-200",
-    background: "bg-teal-50",
-    label: "text-teal-700",
-    value: "text-teal-950",
-  },
-
-  emerald: {
-    border: "border-emerald-200",
-    background: "bg-emerald-50",
-    label: "text-emerald-700",
-    value: "text-emerald-950",
-  },
-
-  amber: {
-    border: "border-amber-200",
-    background: "bg-amber-50",
-    label: "text-amber-700",
-    value: "text-amber-950",
-  },
-
-  red: {
-    border: "border-red-200",
-    background: "bg-red-50",
-    label: "text-red-700",
-    value: "text-red-950",
-  },
-
   blue: {
-    border: "border-blue-200",
-    background: "bg-blue-50",
+    shell: "border-blue-200 bg-blue-50/70",
+    icon: "bg-blue-100 text-blue-700",
     label: "text-blue-700",
-    value: "text-blue-950",
+  },
+  emerald: {
+    shell: "border-emerald-200 bg-emerald-50/70",
+    icon: "bg-emerald-100 text-emerald-700",
+    label: "text-emerald-700",
+  },
+  amber: {
+    shell: "border-amber-200 bg-amber-50/70",
+    icon: "bg-amber-100 text-amber-700",
+    label: "text-amber-700",
+  },
+  red: {
+    shell: "border-red-200 bg-red-50/70",
+    icon: "bg-red-100 text-red-700",
+    label: "text-red-700",
+  },
+  violet: {
+    shell: "border-violet-200 bg-violet-50/70",
+    icon: "bg-violet-100 text-violet-700",
+    label: "text-violet-700",
   },
 };
 
@@ -54,13 +43,13 @@ export default function KpiCard({
   return (
     <article
       className={[
-        "rounded-3xl border p-5 shadow-sm",
-        style.border,
-        style.background,
+        "rounded-3xl border p-5 shadow-sm transition duration-200",
+        "hover:-translate-y-0.5 hover:shadow-md",
+        style.shell,
       ].join(" ")}
     >
       <div className="flex items-start justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <p
             className={[
               "text-xs font-black uppercase tracking-[0.16em]",
@@ -70,18 +59,13 @@ export default function KpiCard({
             {label}
           </p>
 
-          <p
-            className={[
-              "mt-3 text-3xl font-black tracking-tight",
-              style.value,
-            ].join(" ")}
-          >
+          <p className="mt-3 text-3xl font-black tracking-tight text-slate-950">
             {value}
           </p>
         </div>
 
         {Icon && (
-          <div className="rounded-2xl bg-white/70 p-3 shadow-sm">
+          <div className={["rounded-2xl p-3", style.icon].join(" ")}>
             <Icon size={22} />
           </div>
         )}

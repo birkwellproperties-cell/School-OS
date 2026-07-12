@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   UserRoundSearch,
   Users,
+  Palette,
 } from "lucide-react";
 
 export const navigationItems = [
@@ -85,5 +86,11 @@ export const navigationItems = [
     path: "/settings",
     icon: Settings,
     permission: "settings.view",
+  },
+  {
+    label: "Design Lab",
+    path: "/design-lab",
+    icon: Palette,
+    permission: "design_lab.view",
   },
 ];

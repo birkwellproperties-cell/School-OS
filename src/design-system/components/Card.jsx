@@ -2,6 +2,7 @@ export default function Card({
   children,
   className = "",
   padding = "default",
+  interactive = false,
 }) {
   const paddingClasses = {
     none: "",
@@ -13,7 +14,10 @@ export default function Card({
   return (
     <div
       className={[
-        "rounded-3xl border border-slate-200 bg-white shadow-sm",
+        "rounded-3xl border border-slate-200/90 bg-white shadow-sm",
+        interactive
+          ? "transition duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md"
+          : "",
         paddingClasses[padding] || paddingClasses.default,
         className,
       ].join(" ")}

@@ -1,22 +1,25 @@
 const variants = {
   primary:
-    "bg-slate-950 text-white hover:bg-slate-800 focus:ring-slate-400",
+    "bg-blue-600 text-white shadow-sm hover:bg-blue-700 focus:ring-blue-200",
 
   secondary:
-    "border border-slate-300 bg-white text-slate-900 hover:bg-slate-50 focus:ring-slate-300",
+    "border border-slate-300 bg-white text-slate-800 shadow-sm hover:border-blue-200 hover:bg-blue-50 focus:ring-blue-100",
 
-  teal:
-    "bg-teal-700 text-white hover:bg-teal-800 focus:ring-teal-300",
+  accent:
+    "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 focus:ring-emerald-200",
 
   danger:
-    "bg-red-700 text-white hover:bg-red-800 focus:ring-red-300",
+    "bg-red-600 text-white shadow-sm hover:bg-red-700 focus:ring-red-200",
 
   ghost:
-    "bg-transparent text-slate-700 hover:bg-slate-100 focus:ring-slate-300",
+    "bg-transparent text-slate-700 hover:bg-slate-100 focus:ring-slate-200",
+
+  subtle:
+    "bg-blue-50 text-blue-700 hover:bg-blue-100 focus:ring-blue-100",
 };
 
 const sizes = {
-  small: "min-h-9 px-3 py-2 text-sm",
+  small: "min-h-10 px-3.5 py-2 text-sm",
   medium: "min-h-11 px-4 py-2.5 text-sm",
   large: "min-h-12 px-5 py-3 text-base",
 };
@@ -36,7 +39,7 @@ export default function Button({
       disabled={disabled}
       className={[
         "inline-flex items-center justify-center gap-2 rounded-xl font-bold",
-        "transition focus:outline-none focus:ring-4",
+        "transition duration-200 focus:outline-none focus:ring-4",
         "disabled:cursor-not-allowed disabled:opacity-50",
         variants[variant] || variants.primary,
         sizes[size] || sizes.medium,
