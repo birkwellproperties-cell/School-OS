@@ -8,6 +8,11 @@ import {
   PublicOnlyRoute,
 } from "../../platform/auth";
 
+import {
+  ModuleRouteGuard,
+} from "../../platform/authorization";
+
+import AccessDeniedPage from "../../modules/authentication/AccessDeniedPage";
 import AccountPendingPage from "../../modules/authentication/AccountPendingPage";
 import ForgotPasswordPage from "../../modules/authentication/ForgotPasswordPage";
 import LoginPage from "../../modules/authentication/LoginPage";
@@ -26,56 +31,67 @@ import ModulePlaceholder from "../../shared/components/ModulePlaceholder";
 const applicationPages = {
   admissions: {
     title: "Admissions Center",
+    permission: "applications.view",
     description:
       "Manage inquiries, applications, document verification, assessments, interviews, admission decisions, offers, and enrollment.",
   },
   students: {
     title: "Student Center",
+    permission: "students.view",
     description:
       "Manage permanent student records, guardians, enrollments, documents, medical alerts, status history, and lifecycle activity.",
   },
   academics: {
     title: "Academic Center",
+    permission: "academics.view",
     description:
       "Configure academic years, terms, classes, sections, subjects, assignments, examinations, grading, and report cards.",
   },
   attendance: {
     title: "Attendance Center",
+    permission: "attendance.view",
     description:
       "Record student attendance, monitor absences and late arrivals, notify guardians, and analyze attendance risk.",
   },
   finance: {
     title: "Finance Center",
+    permission: "finance.view",
     description:
       "Manage fee structures, invoices, payments, receipts, scholarships, expenses, budgets, and financial reporting.",
   },
   procurement: {
     title: "Procurement Center",
+    permission: "procurement.view",
     description:
       "Manage purchase requests, approvals, quotations, purchase orders, receiving, invoice matching, and payment approval.",
   },
   inventory: {
     title: "Inventory & Assets",
+    permission: "inventory.view",
     description:
       "Track consumables, textbooks, uniforms, equipment, fixed assets, stock movements, maintenance, and work orders.",
   },
   "human-resources": {
     title: "Human Resources",
+    permission: "staff.view",
     description:
       "Manage employees, departments, positions, recruitment, onboarding, contracts, leave, attendance, performance, and training.",
   },
   communications: {
     title: "Communications Center",
+    permission: "communications.view",
     description:
       "Coordinate announcements, messages, email, SMS, WhatsApp, push notifications, and parent communications.",
   },
   reports: {
     title: "Reports Center",
+    permission: "reports.view",
     description:
       "Produce academic, financial, attendance, procurement, inventory, HR, and executive reports.",
   },
   settings: {
     title: "Settings",
+    permission: "settings.view",
     description:
       "Configure organizations, schools, campuses, users, permissions, notifications, integrations, security, and subscriptions.",
   },
@@ -233,16 +249,36 @@ export const router = createBrowserRouter([
         children: [
           {
             index: true,
-            element: <CommandCenter />,
+            element: (
+              <ModuleRouteGuard permission="command_center.view">
+                <CommandCenter />
+              </ModuleRouteGuard>
+            ),
+          },
+          {
+            path: "access-denied",
+            element: <AccessDeniedPage />,
           },
           {
             path: "design-lab",
-            element: <DesignLab />,
+            element: (
+              <ModuleRouteGuard permission="design_lab.view">
+                <DesignLab />
+              </ModuleRouteGuard>
+            ),
           },
-          ...Object.keys(applicationPages).map((page) => ({
-            path: page,
-            element: <ApplicationPlaceholder page={page} />,
-          })),
+          ...Object.entries(applicationPages).map(
+            ([page, config]) => ({
+              path: page,
+              element: (
+                <ModuleRouteGuard
+                  permission={config.permission}
+                >
+                  <ApplicationPlaceholder page={page} />
+                </ModuleRouteGuard>
+              ),
+            }),
+          ),
         ],
       },
     ],
