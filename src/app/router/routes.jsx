@@ -28,6 +28,10 @@ import PublicPagePlaceholder from "../../public-site/pages/PublicPagePlaceholder
 
 import ModulePlaceholder from "../../shared/components/ModulePlaceholder";
 
+import {
+  AdmissionsCenter,
+} from "../../modules/admissions";
+
 const applicationPages = {
   admissions: {
     title: "Admissions Center",
@@ -264,6 +268,14 @@ export const router = createBrowserRouter([
             element: (
               <ModuleRouteGuard permission="design_lab.view">
                 <DesignLab />
+              </ModuleRouteGuard>
+            ),
+          },
+          {
+            path: "admissions",
+            element: (
+              <ModuleRouteGuard permission="applications.view">
+                <AdmissionsCenter />
               </ModuleRouteGuard>
             ),
           },

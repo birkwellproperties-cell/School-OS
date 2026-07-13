@@ -1,0 +1,3 @@
+﻿export {
+  useAdmissions,
+} from "./useAdmissions";
