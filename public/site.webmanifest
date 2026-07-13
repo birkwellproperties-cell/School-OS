@@ -1,0 +1,31 @@
+﻿{
+  "id": "/",
+  "name": "SchoolOS",
+  "short_name": "SchoolOS",
+  "description": "The complete school operating system for connected, efficient, and future-ready institutions.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F3F4F6",
+  "theme_color": "#0D1B2A",
+  "categories": [
+    "education",
+    "business",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "/icons/schoolos-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/schoolos-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

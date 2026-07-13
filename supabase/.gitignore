@@ -43,3 +43,5 @@ supabase/.branches/
 .env.development.local
 .env.test.local
 .env.production.local
+# Supabase Studio scratch queries
+snippets/

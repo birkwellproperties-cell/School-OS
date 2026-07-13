@@ -6,7 +6,6 @@ import {
   EyeOff,
   LockKeyhole,
   Mail,
-  School,
   ShieldCheck,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -17,6 +16,7 @@ import {
 } from "react-router-dom";
 
 import { useAuth } from "../../platform/auth";
+import { BrandLogo } from "../../shared/branding";
 
 export default function LoginPage() {
   const {
@@ -92,21 +92,18 @@ export default function LoginPage() {
         <div className="relative z-10 flex w-full flex-col justify-between p-12 xl:p-16">
           <Link
             to="/"
-            className="flex w-fit items-center gap-4"
+            aria-label="SchoolOS home"
+            className="block w-fit rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 focus:ring-offset-slate-950"
           >
-            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-indigo-700 shadow-xl shadow-indigo-950/30">
-              <School size={30} strokeWidth={2.5} />
-            </span>
-
-            <span>
-              <span className="block text-2xl font-black text-white">
-                SchoolOS
-              </span>
-
-              <span className="block text-xs font-black uppercase tracking-[0.22em] text-indigo-200">
-                Enterprise
-              </span>
-            </span>
+            <BrandLogo
+              variant="light"
+              markVariant="primary"
+              size="lg"
+              showAttribution
+              attribution="Enterprise"
+              markSurface
+              priority
+            />
           </Link>
 
           <div className="max-w-2xl">
@@ -128,6 +125,7 @@ export default function LoginPage() {
               <div className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur">
                 <ShieldCheck
                   size={25}
+                  aria-hidden="true"
                   className="text-cyan-300"
                 />
 
@@ -144,6 +142,7 @@ export default function LoginPage() {
               <div className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur">
                 <Building2
                   size={25}
+                  aria-hidden="true"
                   className="text-cyan-300"
                 />
 
@@ -169,21 +168,15 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           <Link
             to="/"
-            className="mb-10 flex w-fit items-center gap-3 lg:hidden"
+            aria-label="SchoolOS home"
+            className="mb-10 block w-fit rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 lg:hidden"
           >
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-sm">
-              <School size={26} strokeWidth={2.5} />
-            </span>
-
-            <span>
-              <span className="block text-xl font-black text-slate-950">
-                SchoolOS
-              </span>
-
-              <span className="block text-xs font-black uppercase tracking-[0.2em] text-indigo-600">
-                Enterprise
-              </span>
-            </span>
+            <BrandLogo
+              size="md"
+              showAttribution
+              attribution="Enterprise"
+              priority
+            />
           </Link>
 
           <p className="text-sm font-black uppercase tracking-[0.18em] text-indigo-600">
@@ -201,6 +194,7 @@ export default function LoginPage() {
           <form
             className="mt-9 space-y-5"
             onSubmit={handleSubmit}
+            aria-busy={submitting}
           >
             <div>
               <label
@@ -213,6 +207,7 @@ export default function LoginPage() {
               <div className="relative">
                 <Mail
                   size={18}
+                  aria-hidden="true"
                   className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
                 />
 
@@ -226,6 +221,12 @@ export default function LoginPage() {
                   value={form.email}
                   onChange={updateField}
                   placeholder="admin@school.org"
+                  aria-invalid={Boolean(authError)}
+                  aria-describedby={
+                    authError
+                      ? "login-error"
+                      : undefined
+                  }
                   className="min-h-14 w-full rounded-2xl border border-slate-200 bg-white py-3 pl-12 pr-4 text-base font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
                 />
               </div>
@@ -242,7 +243,7 @@ export default function LoginPage() {
 
                 <Link
                   to="/forgot-password"
-                  className="text-sm font-black text-indigo-600 transition hover:text-indigo-700"
+                  className="text-sm font-black text-indigo-600 transition hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
                 >
                   Forgot password?
                 </Link>
@@ -251,6 +252,7 @@ export default function LoginPage() {
               <div className="relative">
                 <LockKeyhole
                   size={18}
+                  aria-hidden="true"
                   className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
                 />
 
@@ -263,6 +265,12 @@ export default function LoginPage() {
                   value={form.password}
                   onChange={updateField}
                   placeholder="Enter your password"
+                  aria-invalid={Boolean(authError)}
+                  aria-describedby={
+                    authError
+                      ? "login-error"
+                      : undefined
+                  }
                   className="min-h-14 w-full rounded-2xl border border-slate-200 bg-white py-3 pl-12 pr-14 text-base font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
                 />
 
@@ -276,12 +284,18 @@ export default function LoginPage() {
                   onClick={() =>
                     setShowPassword((current) => !current)
                   }
-                  className="absolute right-2 top-1/2 flex min-h-10 min-w-10 -translate-y-1/2 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+                  className="absolute right-2 top-1/2 flex min-h-10 min-w-10 -translate-y-1/2 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-400"
                 >
                   {showPassword ? (
-                    <EyeOff size={18} />
+                    <EyeOff
+                      size={18}
+                      aria-hidden="true"
+                    />
                   ) : (
-                    <Eye size={18} />
+                    <Eye
+                      size={18}
+                      aria-hidden="true"
+                    />
                   )}
                 </button>
               </div>
@@ -289,6 +303,7 @@ export default function LoginPage() {
 
             {authError && (
               <div
+                id="login-error"
                 role="alert"
                 className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3"
               >
@@ -301,11 +316,18 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 text-base font-black text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 text-base font-black text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {submitting ? "Signing in..." : "Sign in"}
+              {submitting
+                ? "Signing in..."
+                : "Sign in"}
 
-              {!submitting && <ArrowRight size={19} />}
+              {!submitting && (
+                <ArrowRight
+                  size={19}
+                  aria-hidden="true"
+                />
+              )}
             </button>
           </form>
 
@@ -327,7 +349,7 @@ export default function LoginPage() {
 
             <Link
               to="/request-access"
-              className="inline-flex min-h-11 items-center justify-center font-black text-indigo-600 transition hover:text-indigo-700"
+              className="inline-flex min-h-11 items-center justify-center font-black text-indigo-600 transition hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
             >
               Request Platform Access
             </Link>
@@ -335,9 +357,12 @@ export default function LoginPage() {
 
           <Link
             to="/"
-            className="mt-7 flex min-h-11 items-center justify-center gap-2 text-sm font-black text-slate-500 transition hover:text-indigo-700"
+            className="mt-7 flex min-h-11 items-center justify-center gap-2 text-sm font-black text-slate-500 transition hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
           >
-            <ArrowLeft size={17} />
+            <ArrowLeft
+              size={17}
+              aria-hidden="true"
+            />
             Return to the SchoolOS website
           </Link>
         </div>

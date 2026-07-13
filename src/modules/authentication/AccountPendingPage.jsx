@@ -2,12 +2,12 @@
   Clock3,
   LogOut,
   Mail,
-  School,
   ShieldAlert,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { useAuth } from "../../platform/auth";
+import { BrandLogo } from "../../shared/branding";
 
 export default function AccountPendingPage() {
   const {
@@ -22,24 +22,24 @@ export default function AccountPendingPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-10">
       <div className="w-full max-w-xl rounded-[2rem] border border-white/10 bg-white p-7 shadow-2xl sm:p-10">
-        <div className="flex items-center gap-3">
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 text-white">
-            <School size={25} strokeWidth={2.5} />
-          </span>
-
-          <div>
-            <p className="text-xl font-black text-slate-950">
-              SchoolOS
-            </p>
-
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-600">
-              Enterprise
-            </p>
-          </div>
-        </div>
+        <Link
+          to="/"
+          aria-label="SchoolOS home"
+          className="block w-fit rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+        >
+          <BrandLogo
+            size="md"
+            showAttribution
+            attribution="Enterprise"
+            priority
+          />
+        </Link>
 
         <span className="mt-10 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
-          <ShieldAlert size={28} />
+          <ShieldAlert
+            size={28}
+            aria-hidden="true"
+          />
         </span>
 
         <p className="mt-6 text-sm font-black uppercase tracking-[0.18em] text-amber-600">
@@ -60,6 +60,7 @@ export default function AccountPendingPage() {
           <div className="flex items-start gap-3">
             <Mail
               size={19}
+              aria-hidden="true"
               className="mt-0.5 shrink-0 text-indigo-600"
             />
 
@@ -77,6 +78,7 @@ export default function AccountPendingPage() {
           <div className="flex items-start gap-3">
             <Clock3
               size={19}
+              aria-hidden="true"
               className="mt-0.5 shrink-0 text-indigo-600"
             />
 
@@ -87,8 +89,8 @@ export default function AccountPendingPage() {
 
               <p className="mt-1 text-sm font-semibold leading-6 text-slate-500">
                 Contact your organization administrator or Tavaro
-                support to confirm your invitation, membership,
-                role, and school assignment.
+                support to confirm your invitation, membership, role,
+                and school assignment.
               </p>
             </div>
           </div>
@@ -97,7 +99,7 @@ export default function AccountPendingPage() {
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <Link
             to="/contact"
-            className="flex min-h-12 flex-1 items-center justify-center rounded-xl bg-indigo-600 px-5 text-sm font-black text-white transition hover:bg-indigo-700"
+            className="flex min-h-12 flex-1 items-center justify-center rounded-xl bg-indigo-600 px-5 text-sm font-black text-white transition hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-200"
           >
             Contact support
           </Link>
@@ -105,16 +107,19 @@ export default function AccountPendingPage() {
           <button
             type="button"
             onClick={handleSignOut}
-            className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 px-5 text-sm font-black text-slate-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+            className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 px-5 text-sm font-black text-slate-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-4 focus:ring-red-100"
           >
-            <LogOut size={17} />
+            <LogOut
+              size={17}
+              aria-hidden="true"
+            />
             Sign out
           </button>
         </div>
 
         <Link
           to="/"
-          className="mt-6 flex min-h-11 items-center justify-center text-sm font-black text-slate-500 transition hover:text-indigo-700"
+          className="mt-6 flex min-h-11 items-center justify-center rounded-xl text-sm font-black text-slate-500 transition hover:bg-slate-50 hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
         >
           Return to the SchoolOS website
         </Link>

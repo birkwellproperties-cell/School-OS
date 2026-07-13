@@ -1,16 +1,4 @@
-import {
-  AlertTriangle,
-  Bell,
-  ChevronDown,
-  LogOut,
-  Menu,
-  RefreshCw,
-  School,
-  Search,
-  X,
-} from "lucide-react";
-
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import {
   NavLink,
   Outlet,
@@ -25,6 +13,8 @@ import {
   useAuthorization,
 } from "../platform/authorization";
 import { navigationItems } from "./navigation";
+
+import { BrandLogo } from "../shared/branding";
 
 function NavigationLink({
   item,
@@ -128,45 +118,6 @@ function getInitials(name, email) {
     .map((word) => word[0])
     .join("")
     .toUpperCase();
-}
-
-function Brand({
-  compact = false,
-}) {
-  return (
-    <div className="flex items-center gap-3">
-      <div
-        className={[
-          "flex items-center justify-center rounded-2xl bg-blue-600 text-white shadow-sm",
-          compact
-            ? "h-10 w-10"
-            : "h-11 w-11",
-        ].join(" ")}
-      >
-        <School
-          size={compact ? 22 : 24}
-          strokeWidth={2.5}
-        />
-      </div>
-
-      <div>
-        <p
-          className={[
-            "font-black text-slate-950",
-            compact
-              ? "text-base"
-              : "text-lg",
-          ].join(" ")}
-        >
-          SchoolOS
-        </p>
-
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600">
-          Enterprise
-        </p>
-      </div>
-    </div>
-  );
 }
 
 function WorkspaceLoadingScreen() {
@@ -370,7 +321,11 @@ export default function AppShell() {
     <div className="min-h-screen bg-[#f7f9fc]">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 flex-col border-r border-slate-200 bg-white lg:flex">
         <div className="flex h-24 items-center border-b border-slate-200 px-6">
-          <Brand />
+          <BrandLogo
+            size="md"
+            showAttribution
+            attribution="Enterprise"
+          />
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto p-4">
@@ -408,7 +363,11 @@ export default function AppShell() {
 
           <aside className="relative flex h-full w-[86%] max-w-sm flex-col bg-white shadow-2xl">
             <div className="flex h-20 items-center justify-between border-b border-slate-200 px-5">
-              <Brand compact />
+              <BrandLogo
+                size="sm"
+                showAttribution
+                attribution="Enterprise"
+              />
 
               <button
                 type="button"

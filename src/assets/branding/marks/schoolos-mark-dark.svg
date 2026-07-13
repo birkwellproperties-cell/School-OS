@@ -4,12 +4,12 @@
 
   <defs>
     <linearGradient id="shieldBlue" x1="40" y1="24" x2="210" y2="226" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#1D4ED8"/>
-      <stop offset="1" stop-color="#3B82F6"/>
+      <stop offset="0" stop-color="#0D1B2A"/>
+      <stop offset="1" stop-color="#0D1B2A"/>
     </linearGradient>
     <linearGradient id="bookBlue" x1="78" y1="133" x2="178" y2="205" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#0D1B2A"/>
-      <stop offset="1" stop-color="#153B73"/>
+      <stop offset="1" stop-color="#0D1B2A"/>
     </linearGradient>
   </defs>
 
@@ -22,7 +22,7 @@
   <!-- Shield blue border -->
   <path
     d="M128 31C106 51 82 59 58 67v49c0 51 27 85 70 109 43-24 70-58 70-109V67c-24-8-48-16-70-36Z"
-    fill="url(#shieldBlue)"
+    fill="#0D1B2A"
   />
 
   <!-- Shield white field -->
@@ -39,7 +39,7 @@
 
   <!-- Graduation cap -->
   <path d="m82 104 46-22 46 22-46 22-46-22Z" fill="#0D1B2A"/>
-  <path d="M99 114v17c17 12 41 12 58 0v-17l-29 14-29-14Z" fill="#153B73"/>
+  <path d="M99 114v17c17 12 41 12 58 0v-17l-29 14-29-14Z" fill="#0D1B2A"/>
   <path d="M174 105v22" stroke="#0D1B2A" stroke-width="5" stroke-linecap="round"/>
   <circle cx="174" cy="130" r="4" fill="#F59E0B"/>
 

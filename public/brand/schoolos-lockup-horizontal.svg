@@ -1,0 +1,55 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 280" role="img" aria-labelledby="title desc">
+  <title id="title">SchoolOS</title>
+  <desc id="desc">SchoolOS logo by Tavaro Group.</desc>
+
+  <defs>
+    <linearGradient id="wordBlue" x1="460" y1="0" x2="700" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#3B82F6"/>
+    </linearGradient>
+  </defs>
+
+  <image href="schoolos-mark-primary.svg" x="20" y="10" width="245" height="245"/>
+
+  <text
+    x="285"
+    y="151"
+    fill="#0D1B2A"
+    font-family="Poppins, Arial, sans-serif"
+    font-size="88"
+    font-weight="700"
+    letter-spacing="-4"
+  >School</text>
+
+  <text
+    x="537"
+    y="151"
+    fill="url(#wordBlue)"
+    font-family="Poppins, Arial, sans-serif"
+    font-size="88"
+    font-weight="700"
+    letter-spacing="-4"
+  >OS</text>
+
+  <line x1="315" y1="204" x2="405" y2="204" stroke="#AAB4C4" stroke-width="2"/>
+  <line x1="633" y1="204" x2="723" y2="204" stroke="#AAB4C4" stroke-width="2"/>
+
+  <text
+    x="423"
+    y="213"
+    fill="#0D1B2A"
+    font-family="Poppins, Arial, sans-serif"
+    font-size="20"
+    font-weight="500"
+  >by</text>
+
+  <text
+    x="452"
+    y="213"
+    fill="#0D1B2A"
+    font-family="Poppins, Arial, sans-serif"
+    font-size="20"
+    font-weight="700"
+  >TAVARO GROUP</text>
+</svg>
+

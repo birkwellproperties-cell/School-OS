@@ -1,5 +1,6 @@
-import { School } from "lucide-react";
 import { Link } from "react-router-dom";
+
+import { BrandLogo } from "../../shared/branding";
 
 const footerGroups = [
   {
@@ -36,21 +37,14 @@ export default function PublicFooter() {
     <footer className="border-t border-slate-200 bg-slate-950 text-white">
       <div className="mx-auto grid max-w-7xl gap-12 px-4 py-14 sm:px-6 md:grid-cols-[1.3fr_2fr] lg:px-8">
         <div>
-          <div className="flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-600 text-white">
-              <School size={24} strokeWidth={2.5} />
-            </span>
-
-            <div>
-              <p className="text-lg font-black">
-                SchoolOS
-              </p>
-
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-300">
-                Enterprise
-              </p>
-            </div>
-          </div>
+          <BrandLogo
+            variant="light"
+            markVariant="primary"
+            markSurface
+            size="md"
+            showAttribution
+            attribution="Enterprise"
+          />
 
           <p className="mt-5 max-w-md text-sm font-medium leading-7 text-slate-400">
             A secure enterprise operating system connecting school
@@ -89,12 +83,10 @@ export default function PublicFooter() {
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-6 text-xs font-semibold text-slate-500 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
           <p>
-            Â© {new Date().getFullYear()} Tavaro Group LLC. All rights reserved.
+            © {new Date().getFullYear()} Tavaro Group LLC. All rights reserved.
           </p>
 
-          <p>
-            SchoolOS Enterprise Version 1
-          </p>
+          <p>SchoolOS Enterprise · Version 1</p>
         </div>
       </div>
     </footer>

@@ -2,12 +2,12 @@
   ArrowLeft,
   CheckCircle2,
   Mail,
-  School,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useAuth } from "../../platform/auth";
+import { BrandLogo } from "../../shared/branding";
 
 export default function ForgotPasswordPage() {
   const {
@@ -46,32 +46,41 @@ export default function ForgotPasswordPage() {
     }
   }
 
+  function handleEmailChange(event) {
+    setEmail(event.target.value);
+
+    if (authError) {
+      clearAuthError();
+    }
+  }
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
       <div className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-7 shadow-xl shadow-slate-200/60 sm:p-9">
         <Link
           to="/"
-          className="flex w-fit items-center gap-3"
+          aria-label="SchoolOS home"
+          className="block w-fit rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
         >
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 text-white">
-            <School size={25} strokeWidth={2.5} />
-          </span>
-
-          <span>
-            <span className="block text-xl font-black text-slate-950">
-              SchoolOS
-            </span>
-
-            <span className="block text-xs font-black uppercase tracking-[0.18em] text-indigo-600">
-              Enterprise
-            </span>
-          </span>
+          <BrandLogo
+            size="md"
+            showAttribution
+            attribution="Enterprise"
+            priority
+          />
         </Link>
 
         {submitted ? (
-          <div className="mt-10">
+          <div
+            role="status"
+            aria-live="polite"
+            className="mt-10"
+          >
             <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-              <CheckCircle2 size={28} />
+              <CheckCircle2
+                size={28}
+                aria-hidden="true"
+              />
             </span>
 
             <h1 className="mt-6 text-3xl font-black text-slate-950">
@@ -95,9 +104,12 @@ export default function ForgotPasswordPage() {
 
             <Link
               to="/login"
-              className="mt-7 flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 text-sm font-black text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+              className="mt-7 flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 text-sm font-black text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
             >
-              <ArrowLeft size={17} />
+              <ArrowLeft
+                size={17}
+                aria-hidden="true"
+              />
               Return to sign in
             </Link>
           </div>
@@ -119,6 +131,7 @@ export default function ForgotPasswordPage() {
             <form
               className="mt-8 space-y-5"
               onSubmit={handleSubmit}
+              aria-busy={submitting}
             >
               <div>
                 <label
@@ -131,6 +144,7 @@ export default function ForgotPasswordPage() {
                 <div className="relative">
                   <Mail
                     size={18}
+                    aria-hidden="true"
                     className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
                   />
 
@@ -141,14 +155,14 @@ export default function ForgotPasswordPage() {
                     autoComplete="email"
                     inputMode="email"
                     value={email}
-                    onChange={(event) => {
-                      setEmail(event.target.value);
-
-                      if (authError) {
-                        clearAuthError();
-                      }
-                    }}
+                    onChange={handleEmailChange}
                     placeholder="admin@school.org"
+                    aria-invalid={Boolean(authError)}
+                    aria-describedby={
+                      authError
+                        ? "password-recovery-error"
+                        : undefined
+                    }
                     className="min-h-14 w-full rounded-2xl border border-slate-200 bg-white py-3 pl-12 pr-4 text-base font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
                   />
                 </div>
@@ -156,6 +170,7 @@ export default function ForgotPasswordPage() {
 
               {authError && (
                 <div
+                  id="password-recovery-error"
                   role="alert"
                   className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3"
                 >
@@ -168,7 +183,7 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex min-h-14 w-full items-center justify-center rounded-2xl bg-indigo-600 px-5 text-base font-black text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex min-h-14 w-full items-center justify-center rounded-2xl bg-indigo-600 px-5 text-base font-black text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-200 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitting
                   ? "Sending recovery email..."
@@ -177,9 +192,12 @@ export default function ForgotPasswordPage() {
 
               <Link
                 to="/login"
-                className="flex min-h-12 items-center justify-center gap-2 rounded-xl text-sm font-black text-slate-600 transition hover:bg-slate-50 hover:text-indigo-700"
+                className="flex min-h-12 items-center justify-center gap-2 rounded-xl text-sm font-black text-slate-600 transition hover:bg-slate-50 hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
               >
-                <ArrowLeft size={17} />
+                <ArrowLeft
+                  size={17}
+                  aria-hidden="true"
+                />
                 Back to sign in
               </Link>
             </form>

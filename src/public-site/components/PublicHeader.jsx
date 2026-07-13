@@ -1,7 +1,6 @@
 import {
   ArrowRight,
   Menu,
-  School,
   X,
 } from "lucide-react";
 import { useState } from "react";
@@ -10,6 +9,8 @@ import {
   NavLink,
   useLocation,
 } from "react-router-dom";
+
+import { BrandLogo } from "../../shared/branding";
 
 const publicNavigation = [
   {
@@ -38,47 +39,6 @@ const publicNavigation = [
   },
 ];
 
-function Brand({ darkHeader }) {
-  return (
-    <Link
-      to="/"
-      aria-label="SchoolOS home"
-      className="flex items-center gap-3"
-    >
-      <span
-        className={[
-          "flex h-11 w-11 items-center justify-center rounded-2xl shadow-lg transition",
-          darkHeader
-            ? "bg-white text-indigo-700 shadow-indigo-950/20"
-            : "bg-indigo-600 text-white shadow-indigo-200",
-        ].join(" ")}
-      >
-        <School size={25} strokeWidth={2.5} />
-      </span>
-
-      <span>
-        <span
-          className={[
-            "block text-lg font-black leading-none transition",
-            darkHeader ? "text-white" : "text-slate-950",
-          ].join(" ")}
-        >
-          SchoolOS
-        </span>
-
-        <span
-          className={[
-            "mt-1 block text-[10px] font-black uppercase tracking-[0.2em] transition",
-            darkHeader ? "text-indigo-200" : "text-indigo-600",
-          ].join(" ")}
-        >
-          Enterprise
-        </span>
-      </span>
-    </Link>
-  );
-}
-
 function NavigationItem({
   item,
   darkHeader,
@@ -106,11 +66,40 @@ function NavigationItem({
   );
 }
 
+function HeaderBrand({
+  darkHeader,
+  mobile = false,
+  onNavigate,
+}) {
+  return (
+    <Link
+      to="/"
+      aria-label="SchoolOS home"
+      onClick={onNavigate}
+      className="shrink-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
+    >
+      <BrandLogo
+        variant={darkHeader ? "light" : "primary"}
+        markVariant="primary"
+        markSurface={darkHeader}
+        size={mobile ? "sm" : "md"}
+        showAttribution
+        attribution="Enterprise"
+        priority
+      />
+    </Link>
+  );
+}
+
 export default function PublicHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
 
   const darkHeader = location.pathname === "/";
+
+  function closeMobileNavigation() {
+    setMobileOpen(false);
+  }
 
   return (
     <>
@@ -123,9 +112,12 @@ export default function PublicHeader() {
         ].join(" ")}
       >
         <div className="mx-auto flex min-h-20 max-w-7xl items-center justify-between gap-6 px-4 sm:px-6 lg:px-8">
-          <Brand darkHeader={darkHeader} />
+          <HeaderBrand darkHeader={darkHeader} />
 
-          <nav className="hidden items-center gap-1 lg:flex">
+          <nav
+            aria-label="Primary navigation"
+            className="hidden items-center gap-1 lg:flex"
+          >
             {publicNavigation.map((item) => (
               <NavigationItem
                 key={item.path}
@@ -165,6 +157,7 @@ export default function PublicHeader() {
           <button
             type="button"
             aria-label="Open navigation"
+            aria-expanded={mobileOpen}
             onClick={() => setMobileOpen(true)}
             className={[
               "flex min-h-11 min-w-11 items-center justify-center rounded-xl border transition lg:hidden",
@@ -183,31 +176,41 @@ export default function PublicHeader() {
           <button
             type="button"
             aria-label="Close navigation"
-            onClick={() => setMobileOpen(false)}
+            onClick={closeMobileNavigation}
             className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
           />
 
-          <aside className="relative ml-auto flex h-full w-[88%] max-w-sm flex-col bg-slate-950 p-5 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <Brand darkHeader />
+          <aside
+            aria-label="Mobile navigation"
+            className="relative ml-auto flex h-full w-[88%] max-w-sm flex-col bg-slate-950 p-5 shadow-2xl"
+          >
+            <div className="flex items-center justify-between gap-4">
+              <HeaderBrand
+                darkHeader
+                mobile
+                onNavigate={closeMobileNavigation}
+              />
 
               <button
                 type="button"
                 aria-label="Close navigation"
-                onClick={() => setMobileOpen(false)}
+                onClick={closeMobileNavigation}
                 className="flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-white/10 text-white transition hover:bg-white/10"
               >
                 <X size={21} />
               </button>
             </div>
 
-            <nav className="mt-10 flex flex-1 flex-col gap-2">
+            <nav
+              aria-label="Mobile primary navigation"
+              className="mt-10 flex flex-1 flex-col gap-2"
+            >
               {publicNavigation.map((item) => (
                 <NavigationItem
                   key={item.path}
                   item={item}
                   darkHeader
-                  onNavigate={() => setMobileOpen(false)}
+                  onNavigate={closeMobileNavigation}
                 />
               ))}
             </nav>
@@ -215,7 +218,7 @@ export default function PublicHeader() {
             <div className="space-y-3 border-t border-white/10 pt-5">
               <Link
                 to="/login"
-                onClick={() => setMobileOpen(false)}
+                onClick={closeMobileNavigation}
                 className="flex min-h-12 items-center justify-center rounded-xl border border-white/15 px-5 text-sm font-black text-white"
               >
                 Sign in
@@ -223,7 +226,7 @@ export default function PublicHeader() {
 
               <Link
                 to="/request-access"
-                onClick={() => setMobileOpen(false)}
+                onClick={closeMobileNavigation}
                 className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-white px-5 text-sm font-black text-indigo-700"
               >
                 Request Platform Access

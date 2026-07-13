@@ -3,7 +3,6 @@
   Eye,
   EyeOff,
   LockKeyhole,
-  School,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
@@ -12,6 +11,7 @@ import {
 } from "react-router-dom";
 
 import { useAuth } from "../../platform/auth";
+import { BrandLogo } from "../../shared/branding";
 
 export default function ResetPasswordPage() {
   const {
@@ -112,25 +112,23 @@ export default function ResetPasswordPage() {
       <div className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-7 shadow-xl shadow-slate-200/60 sm:p-9">
         <Link
           to="/"
-          className="flex w-fit items-center gap-3"
+          aria-label="SchoolOS home"
+          className="block w-fit rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
         >
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 text-white">
-            <School size={25} strokeWidth={2.5} />
-          </span>
-
-          <span>
-            <span className="block text-xl font-black text-slate-950">
-              SchoolOS
-            </span>
-
-            <span className="block text-xs font-black uppercase tracking-[0.18em] text-indigo-600">
-              Enterprise
-            </span>
-          </span>
+          <BrandLogo
+            size="md"
+            showAttribution
+            attribution="Enterprise"
+            priority
+          />
         </Link>
 
         {completed ? (
-          <div className="mt-10 text-center">
+          <div
+            role="status"
+            aria-live="polite"
+            className="mt-10 text-center"
+          >
             <CheckCircle2
               size={54}
               className="mx-auto text-emerald-600"
@@ -175,6 +173,7 @@ export default function ResetPasswordPage() {
                 <div className="relative">
                   <LockKeyhole
                     size={18}
+                    aria-hidden="true"
                     className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
                   />
 
@@ -187,6 +186,12 @@ export default function ResetPasswordPage() {
                     autoComplete="new-password"
                     value={form.password}
                     onChange={updateField}
+                    aria-invalid={Boolean(displayedError)}
+                    aria-describedby={
+                      displayedError
+                        ? "password-reset-error"
+                        : undefined
+                    }
                     className="min-h-14 w-full rounded-2xl border border-slate-200 bg-white py-3 pl-12 pr-14 text-base font-semibold text-slate-950 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
                   />
 
@@ -203,9 +208,9 @@ export default function ResetPasswordPage() {
                     className="absolute right-2 top-1/2 flex min-h-10 min-w-10 -translate-y-1/2 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
                   >
                     {showPasswords ? (
-                      <EyeOff size={18} />
+                      <EyeOff size={18} aria-hidden="true" />
                     ) : (
-                      <Eye size={18} />
+                      <Eye size={18} aria-hidden="true" />
                     )}
                   </button>
                 </div>
@@ -222,6 +227,7 @@ export default function ResetPasswordPage() {
                 <div className="relative">
                   <LockKeyhole
                     size={18}
+                    aria-hidden="true"
                     className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
                   />
 
@@ -234,6 +240,12 @@ export default function ResetPasswordPage() {
                     autoComplete="new-password"
                     value={form.confirmation}
                     onChange={updateField}
+                    aria-invalid={Boolean(displayedError)}
+                    aria-describedby={
+                      displayedError
+                        ? "password-reset-error"
+                        : undefined
+                    }
                     className="min-h-14 w-full rounded-2xl border border-slate-200 bg-white py-3 pl-12 pr-4 text-base font-semibold text-slate-950 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
                   />
                 </div>
@@ -241,6 +253,7 @@ export default function ResetPasswordPage() {
 
               {displayedError && (
                 <div
+                  id="password-reset-error"
                   role="alert"
                   className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3"
                 >
