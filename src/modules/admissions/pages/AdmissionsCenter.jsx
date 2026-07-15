@@ -1,4 +1,8 @@
 ﻿import {
+  useState,
+} from "react";
+
+import {
   CalendarClock,
   CheckCircle2,
   ClipboardList,
@@ -13,10 +17,19 @@
 } from "lucide-react";
 
 import {
+  AdmissionCycleDialog,
+  AdmissionCycleSelector,
   AdmissionsMetricCard,
   AdmissionsSection,
   AdmissionsTable,
+  ApplicantDialog,
+  ApplicantQueue,
+  ApplicationWorkspace,
+  ConvertInquiryDialog,
+  InquiryDialog,
+  InquiryQueue,
   QuickActionCard,
+  ApplicationDialog,
 } from "../components";
 
 import {
@@ -86,6 +99,48 @@ function getApplicantName(record) {
 }
 
 function AdmissionsWorkspace() {
+
+  const [
+    cycleDialogMode,
+    setCycleDialogMode,
+  ] = useState(false);
+
+  const [
+    inquiryDialogMode,
+    setInquiryDialogMode,
+  ] = useState(null);
+
+  const [
+    applicantDialogMode,
+    setApplicantDialogMode,
+  ] = useState(null);
+
+  const [
+    applicationDialogMode,
+    setApplicationDialogMode,
+  ] = useState(null);
+
+  const [
+    selectedApplicationRecord,
+    setSelectedApplicationRecord,
+  ] = useState(null);
+
+  const [
+    applicationApplicant,
+    setApplicationApplicant,
+  ] = useState(null);
+
+  const [
+    conversionInquiry,
+    setConversionInquiry,
+  ] = useState(null);
+
+  const closeApplicationDialog = () => {
+    setApplicationDialogMode(null);
+    setApplicationApplicant(null);
+    setSelectedApplicationRecord(null);
+  };
+
   const {
     loading,
     error,
@@ -94,6 +149,9 @@ function AdmissionsWorkspace() {
     priorityApplications,
     upcomingInterviews,
     loadedAt,
+    selectedAdmissionCycle,
+    selectedInquiry,
+    selectedApplicant,
     refreshDashboard,
   } = useAdmissions();
 
@@ -258,11 +316,21 @@ function AdmissionsWorkspace() {
               documents, interviews, decisions, offers, and
               enrollment conversion from one workspace.
             </p>
+            <div className="mt-6">
+              <AdmissionCycleSelector
+                onCreateCycle={() =>
+                  setCycleDialogMode("create")
+                }
+                onEditCycle={() =>
+                  setCycleDialogMode("edit")
+                }
+              />
+            </div>
           </div>
 
           <button
             type="button"
-            onClick={refreshDashboard}
+            onClick={() => refreshDashboard()}
             disabled={loading}
             className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 px-5 text-sm font-black text-white transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-60"
           >
@@ -288,6 +356,88 @@ function AdmissionsWorkspace() {
         )}
       </header>
 
+      <AdmissionCycleDialog
+        open={Boolean(cycleDialogMode)}
+        mode={
+          cycleDialogMode || "create"
+        }
+        cycle={
+          cycleDialogMode === "edit"
+            ? selectedAdmissionCycle
+            : null
+        }
+        onClose={() =>
+          setCycleDialogMode(null)
+        }
+      />
+
+      <InquiryDialog
+        open={Boolean(inquiryDialogMode)}
+        mode={
+          inquiryDialogMode || "create"
+        }
+        inquiry={
+          inquiryDialogMode === "edit"
+            ? selectedInquiry
+            : null
+        }
+        onClose={() =>
+          setInquiryDialogMode(null)
+        }
+      />
+
+      <ApplicantDialog
+        open={Boolean(
+          applicantDialogMode,
+        )}
+        mode={
+          applicantDialogMode ||
+          "create"
+        }
+        applicant={
+          applicantDialogMode ===
+            "edit"
+              ? selectedApplicant
+              : null
+        }
+        onClose={() =>
+          setApplicantDialogMode(null)
+        }
+      />
+
+      <ApplicationDialog
+        open={Boolean(
+          applicationDialogMode,
+        )}
+        mode={
+          applicationDialogMode ||
+          "create"
+        }
+        applicant={
+          applicationApplicant
+        }
+        application={selectedApplicationRecord}
+        onClose={
+          closeApplicationDialog
+        }
+        onSaved={() => {
+          closeApplicationDialog();
+        }}
+      />
+
+      <ConvertInquiryDialog
+        open={Boolean(
+          conversionInquiry,
+        )}
+        inquiry={conversionInquiry}
+        onClose={() =>
+          setConversionInquiry(null)
+        }
+        onConverted={() =>
+          setConversionInquiry(null)
+        }
+      />
+
       {error && (
         <div
           role="alert"
@@ -303,7 +453,7 @@ function AdmissionsWorkspace() {
 
           <button
             type="button"
-            onClick={refreshDashboard}
+            onClick={() => refreshDashboard()}
             className="mt-4 rounded-xl bg-red-700 px-4 py-2 text-sm font-black text-white"
           >
             Try again
@@ -372,6 +522,13 @@ function AdmissionsWorkspace() {
         />
       </section>
 
+      <ApplicationWorkspace
+        onEditApplication={(application) => {
+          setSelectedApplicationRecord(application);
+          setApplicationDialogMode("edit");
+        }}
+      />
+
       <div className="grid gap-6 xl:grid-cols-2">
         <AdmissionsSection
           title="Recent inquiries"
@@ -415,6 +572,42 @@ function AdmissionsWorkspace() {
           emptyDescription="Submitted and in-progress applications will appear here."
         />
       </AdmissionsSection>
+      
+      <InquiryQueue
+        onCreateInquiry={() =>
+          setInquiryDialogMode("create")
+        }
+        onEditInquiry={() =>
+          setInquiryDialogMode("edit")
+        }
+        onConvertInquiry={(inquiry) =>
+          setConversionInquiry(inquiry)
+        }
+      />
+
+      <ApplicantQueue
+        onCreateApplicant={() =>
+          setApplicantDialogMode(
+            "create",
+          )
+        }
+        onEditApplicant={() =>
+          setApplicantDialogMode(
+            "edit",
+          )
+        }
+        onCreateApplication={(
+          applicant,
+        ) => {
+          setApplicationApplicant(
+            applicant,
+          );
+
+          setApplicationDialogMode(
+            "create",
+          );
+        }}
+      />
 
       <section>
         <div>
@@ -429,10 +622,15 @@ function AdmissionsWorkspace() {
 
         <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <QuickActionCard
-            title="New inquiry"
-            description="Capture a prospective family and assign follow-up."
-            icon={UserPlus}
+            title="New applicant"
+            description="Create a prospective student record and guardian relationships."
+            icon={Users}
             disabled={!canCreate}
+            onClick={() =>
+              setApplicantDialogMode(
+                "create",
+              )
+            }
           />
 
           <QuickActionCard

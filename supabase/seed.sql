@@ -578,7 +578,99 @@ begin
     revoked_at = null,
     revoked_by = null,
     updated_at = now();
+
+-- ==========================================================
+-- - 8. ADMISSIONS DEVELOPMENT SEED
+-- ==========================================================
+
+insert into public.admission_cycles (
+  id,
+  organization_id,
+  school_id,
+  campus_id,
+  name,
+  code,
+  academic_year_label,
+  status,
+  opens_at,
+  closes_at,
+  created_by,
+  updated_by
+)
+values
+
+(
+  '88888888-8888-4888-8888-888888888888',
+  '11111111-1111-4111-8111-111111111111',
+  '22222222-2222-4222-8222-222222222222',
+  '33333333-3333-4333-8333-333333333333',
+
+  '2026 Intake',
+  '2026',
+  '2026',
+
+  'closed',
+
+  '2026-01-01',
+  '2026-03-31',
+
+  (
+    select id
+    from public.profiles
+    where email='admin@test.com'
+    limit 1
+  ),
+
+  (
+    select id
+    from public.profiles
+    where email='admin@test.com'
+    limit 1
+  )
+),
+
+(
+  '99999999-9999-4999-8999-999999999999',
+  '11111111-1111-4111-8111-111111111111',
+  '22222222-2222-4222-8222-222222222222',
+  '33333333-3333-4333-8333-333333333333',
+
+  '2027 Intake',
+  '2027',
+  '2027',
+
+  'open',
+
+  '2027-01-05',
+  '2027-03-31',
+
+  (
+    select id
+    from public.profiles
+    where email='admin@test.com'
+    limit 1
+  ),
+
+  (
+    select id
+    from public.profiles
+    where email='admin@test.com'
+    limit 1
+  )
+)
+
+on conflict (id)
+do update set
+
+name = excluded.name,
+code = excluded.code,
+academic_year_label = excluded.academic_year_label,
+status = excluded.status,
+opens_at = excluded.opens_at,
+closes_at = excluded.closes_at,
+updated_at = now();    
 end;
 $$;
 
 commit;
+

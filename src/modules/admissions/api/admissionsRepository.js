@@ -77,6 +77,24 @@ async function getPagedRecords({
     "created_at",
     "updated_at",
   ],
+
+  supportedFilters = {
+    organizationId: true,
+    schoolId: true,
+    campusId: true,
+    admissionCycleId: true,
+    applicantId: true,
+    applicationId: true,
+    assignedTo: true,
+    assignedReviewerId: true,
+    leadInterviewerId: true,
+    decisionId: true,
+    offerId: true,
+    priority: true,
+    status: true,
+    statuses: true,
+  },
+
   configureQuery,
   operation,
   fallbackMessage,
@@ -91,84 +109,225 @@ async function getPagedRecords({
     })
     .is("deleted_at", null);
 
-  query = applyExactFilter(
+  async function getPagedRecords({
+  table,
+  select = DEFAULT_SELECT,
+  filters = {},
+  searchColumns = [],
+  allowedSortColumns = [
+    "created_at",
+    "updated_at",
+  ],
+
+  supportedFilters = {
+    organizationId: true,
+    schoolId: true,
+    campusId: true,
+    admissionCycleId: true,
+    applicantId: true,
+    applicationId: true,
+    assignedTo: true,
+    assignedReviewerId: true,
+    leadInterviewerId: true,
+    decisionId: true,
+    offerId: true,
+    priority: true,
+    status: true,
+    statuses: true,
+  },
+
+  includeDeletedFilter = true,
+
+  configureQuery,
+  operation,
+  fallbackMessage,
+}) {
+  const pagination =
+    normalizePagination(filters);
+
+  let query = supabase
+    .from(table)
+    .select(select, {
+      count: "exact",
+    });
+
+  if (includeDeletedFilter) {
+    query = query.is(
+      "deleted_at",
+      null,
+    );
+  }
+
+  if (supportedFilters.organizationId) {
+    query = applyExactFilter(
+      query,
+      "organization_id",
+      filters.organizationId,
+    );
+  }
+
+  if (supportedFilters.schoolId) {
+    query = applyExactFilter(
+      query,
+      "school_id",
+      filters.schoolId,
+    );
+  }
+
+  if (supportedFilters.campusId) {
+    query = applyExactFilter(
+      query,
+      "campus_id",
+      filters.campusId,
+    );
+  }
+
+  if (supportedFilters.admissionCycleId) {
+    query = applyExactFilter(
+      query,
+      "admission_cycle_id",
+      filters.admissionCycleId,
+    );
+  }
+
+  if (supportedFilters.applicantId) {
+    query = applyExactFilter(
+      query,
+      "applicant_id",
+      filters.applicantId,
+    );
+  }
+
+  if (supportedFilters.applicationId) {
+    query = applyExactFilter(
+      query,
+      "application_id",
+      filters.applicationId,
+    );
+  }
+
+  if (supportedFilters.assignedTo) {
+    query = applyExactFilter(
+      query,
+      "assigned_to",
+      filters.assignedTo,
+    );
+  }
+
+  if (supportedFilters.assignedReviewerId) {
+    query = applyExactFilter(
+      query,
+      "assigned_reviewer_id",
+      filters.assignedReviewerId,
+    );
+  }
+
+  if (supportedFilters.leadInterviewerId) {
+    query = applyExactFilter(
+      query,
+      "lead_interviewer_id",
+      filters.leadInterviewerId,
+    );
+  }
+
+  if (supportedFilters.decisionId) {
+    query = applyExactFilter(
+      query,
+      "decision_id",
+      filters.decisionId,
+    );
+  }
+
+  if (supportedFilters.offerId) {
+    query = applyExactFilter(
+      query,
+      "offer_id",
+      filters.offerId,
+    );
+  }
+
+  if (supportedFilters.priority) {
+    query = applyExactFilter(
+      query,
+      "priority",
+      filters.priority,
+    );
+  }
+
+  if (supportedFilters.status) {
+    query = applyExactFilter(
+      query,
+      "status",
+      filters.status,
+    );
+  }
+
+  if (supportedFilters.statuses) {
+    query = applyArrayFilter(
+      query,
+      "status",
+      filters.statuses,
+    );
+  }
+
+  query = applySearch(
     query,
-    "organization_id",
-    filters.organizationId,
+    filters.search,
+    searchColumns,
   );
 
-  query = applyExactFilter(
+  query = applyDateRange(
     query,
-    "school_id",
-    filters.schoolId,
+    filters.dateColumn ||
+      "created_at",
+    {
+      from: filters.dateFrom,
+      to: filters.dateTo,
+    },
   );
 
-  query = applyExactFilter(
+  if (
+    typeof configureQuery ===
+    "function"
+  ) {
+    query = configureQuery(
+      query,
+      filters,
+    );
+  }
+
+  query = applyOrdering(
     query,
-    "campus_id",
-    filters.campusId,
+    filters,
+    allowedSortColumns,
   );
 
-  query = applyExactFilter(
+  query = applyPagination(
     query,
-    "admission_cycle_id",
-    filters.admissionCycleId,
+    pagination,
   );
 
-  query = applyExactFilter(
-    query,
-    "applicant_id",
-    filters.applicantId,
-  );
+  const {
+    data,
+    error,
+    count,
+  } = await query;
 
-  query = applyExactFilter(
-    query,
-    "application_id",
-    filters.applicationId,
-  );
+  if (error) {
+    throwRepositoryError({
+      error,
+      operation,
+      table,
+      fallbackMessage,
+    });
+  }
 
-  query = applyExactFilter(
-    query,
-    "assigned_to",
-    filters.assignedTo,
-  );
-
-  query = applyExactFilter(
-    query,
-    "assigned_reviewer_id",
-    filters.assignedReviewerId,
-  );
-
-  query = applyExactFilter(
-    query,
-    "lead_interviewer_id",
-    filters.leadInterviewerId,
-  );
-
-  query = applyExactFilter(
-    query,
-    "decision_id",
-    filters.decisionId,
-  );
-
-  query = applyExactFilter(
-    query,
-    "offer_id",
-    filters.offerId,
-  );
-
-  query = applyExactFilter(
-    query,
-    "status",
-    filters.status,
-  );
-
-  query = applyArrayFilter(
-    query,
-    "status",
-    filters.statuses,
-  );
-
+  return createPagedResult({
+    data,
+    count,
+    pagination,
+  });
+}
   query = applySearch(
     query,
     filters.search,
@@ -224,6 +383,44 @@ async function getPagedRecords({
   });
 }
 
+export async function updateAdmissionCycle(
+  id,
+  updates,
+) {
+  const { data, error } = await supabase
+    .from(AdmissionsTable.CYCLES)
+    .update(updates)
+    .eq("id", id)
+    .is("deleted_at", null)
+    .select()
+    .single();
+
+  if (error) {
+    throwRepositoryError({
+      error,
+      operation: "updateAdmissionCycle",
+      table: AdmissionsTable.CYCLES,
+      fallbackMessage:
+        "Unable to update admission cycle.",
+    });
+  }
+
+  return data;
+}
+
+export async function archiveAdmissionCycle(id) {
+  return updateAdmissionCycle(id, {
+    status: "archived",
+    archived_at: new Date().toISOString(),
+  });
+}
+
+export async function deleteAdmissionCycle(id) {
+  return updateAdmissionCycle(id, {
+    deleted_at: new Date().toISOString(),
+  });
+}
+
 export async function getAdmissionCycles(
   filters = {},
 ) {
@@ -234,15 +431,17 @@ export async function getAdmissionCycles(
       "name",
       "code",
       "academic_year_label",
+      "notes",
     ],
     allowedSortColumns: [
       "created_at",
       "updated_at",
       "name",
       "code",
+      "academic_year_label",
+      "status",
       "opens_at",
       "closes_at",
-      "status",
     ],
     operation: "getAdmissionCycles",
     fallbackMessage:
@@ -258,6 +457,55 @@ export async function getAdmissionCycle(id) {
     fallbackMessage:
       "Unable to load the admission cycle.",
   });
+}
+
+export async function createInquiry(
+  payload,
+) {
+  const { data, error } = await supabase
+    .from(AdmissionsTable.INQUIRIES)
+    .insert(payload)
+    .select()
+    .single();
+
+  if (error) {
+    throwRepositoryError({
+      error,
+      operation: "createInquiry",
+      table:
+        AdmissionsTable.INQUIRIES,
+      fallbackMessage:
+        "Unable to create the admission inquiry.",
+    });
+  }
+
+  return data;
+}
+
+export async function updateInquiry(
+  id,
+  updates,
+) {
+  const { data, error } = await supabase
+    .from(AdmissionsTable.INQUIRIES)
+    .update(updates)
+    .eq("id", id)
+    .is("deleted_at", null)
+    .select()
+    .single();
+
+  if (error) {
+    throwRepositoryError({
+      error,
+      operation: "updateInquiry",
+      table:
+        AdmissionsTable.INQUIRIES,
+      fallbackMessage:
+        "Unable to update the admission inquiry.",
+    });
+  }
+
+  return data;
 }
 
 export async function getInquiries(
@@ -339,6 +587,132 @@ export async function getApplicant(id) {
     fallbackMessage:
       "Unable to load the applicant.",
   });
+}
+
+export async function createApplicant(payload) {
+  const { data, error } = await supabase
+    .from(AdmissionsTable.APPLICANTS)
+    .insert(payload)
+    .select()
+    .single();
+
+  if (error) {
+    throwRepositoryError({
+      error,
+      operation: "createApplicant",
+      table: AdmissionsTable.APPLICANTS,
+      fallbackMessage:
+        "Unable to create applicant.",
+    });
+  }
+
+  return data;
+}
+
+export async function updateApplicant(
+  id,
+  updates,
+) {
+  const { data, error } = await supabase
+    .from(AdmissionsTable.APPLICANTS)
+    .update(updates)
+    .eq("id", id)
+    .is("deleted_at", null)
+    .select()
+    .single();
+
+  if (error) {
+    throwRepositoryError({
+      error,
+      operation: "updateApplicant",
+      table: AdmissionsTable.APPLICANTS,
+      fallbackMessage:
+        "Unable to update applicant.",
+    });
+  }
+
+  return data;
+}
+
+export async function createApplication(payload) {
+  const { data, error } = await supabase
+    .from(AdmissionsTable.APPLICATIONS)
+    .insert(payload)
+    .select()
+    .single();
+
+  if (error) {
+    throwRepositoryError({
+      error,
+      operation: "createApplication",
+      table: AdmissionsTable.APPLICATIONS,
+      fallbackMessage:
+        "Unable to create admission application.",
+    });
+  }
+
+  return data;
+}
+
+export async function updateApplication(
+  id,
+  updates,
+) {
+  const { data, error } = await supabase
+    .from(AdmissionsTable.APPLICATIONS)
+    .update(updates)
+    .eq("id", id)
+    .is("deleted_at", null)
+    .select()
+    .single();
+
+  if (error) {
+    throwRepositoryError({
+      error,
+      operation: "updateApplication",
+      table: AdmissionsTable.APPLICATIONS,
+      fallbackMessage:
+        "Unable to update admission application.",
+    });
+  }
+
+  return data;
+}
+
+export async function convertInquiryToApplicant(
+  inquiryId,
+  {
+    transitionNotes = null,
+  } = {},
+) {
+  const { data, error } =
+    await supabase.rpc(
+      "convert_admission_inquiry_to_applicant",
+      {
+        p_inquiry_id:
+          inquiryId,
+
+        p_transition_notes:
+          transitionNotes,
+      },
+    );
+
+  if (error) {
+    throwRepositoryError({
+      error,
+
+      operation:
+        "convertInquiryToApplicant",
+
+      table:
+        AdmissionsTable.INQUIRIES,
+
+      fallbackMessage:
+        "Unable to convert the inquiry to an applicant.",
+    });
+  }
+
+  return data;
 }
 
 export async function getGuardians(
@@ -446,6 +820,28 @@ export async function getApplicationDocuments(
   return getPagedRecords({
     table: AdmissionsTable.DOCUMENTS,
     filters,
+
+    supportedFilters: {
+      organizationId: true,
+      schoolId: true,
+
+      campusId: false,
+      admissionCycleId: false,
+
+      applicantId: true,
+      applicationId: true,
+
+      assignedTo: false,
+      assignedReviewerId: false,
+      leadInterviewerId: false,
+      decisionId: false,
+      offerId: false,
+      priority: false,
+
+      status: true,
+      statuses: true,
+    },
+
     searchColumns: [
       "document_type",
       "document_label",
@@ -453,6 +849,7 @@ export async function getApplicationDocuments(
       "rejection_reason",
       "notes",
     ],
+
     allowedSortColumns: [
       "created_at",
       "updated_at",
@@ -463,11 +860,95 @@ export async function getApplicationDocuments(
       "verified_at",
       "expires_on",
     ],
+
     operation:
       "getApplicationDocuments",
+
     fallbackMessage:
       "Unable to load application documents.",
   });
+}
+
+export async function getApplicationDocument(
+  id,
+) {
+  return getSingleRecord({
+    table: AdmissionsTable.DOCUMENTS,
+    id,
+    operation:
+      "getApplicationDocument",
+    fallbackMessage:
+      "Unable to load the application document.",
+  });
+}
+
+export async function createApplicationDocument(
+  payload,
+) {
+  const {
+    data,
+    error,
+  } = await supabase
+    .from(AdmissionsTable.DOCUMENTS)
+    .insert(payload)
+    .select()
+    .single();
+
+  if (error) {
+    throwRepositoryError({
+      error,
+      operation:
+        "createApplicationDocument",
+      table:
+        AdmissionsTable.DOCUMENTS,
+      fallbackMessage:
+        "Unable to create the application document.",
+    });
+  }
+
+  return data;
+}
+
+export async function updateApplicationDocument(
+  id,
+  updates,
+) {
+  const {
+    data,
+    error,
+  } = await supabase
+    .from(AdmissionsTable.DOCUMENTS)
+    .update(updates)
+    .eq("id", id)
+    .is("deleted_at", null)
+    .select()
+    .single();
+
+  if (error) {
+    throwRepositoryError({
+      error,
+      operation:
+        "updateApplicationDocument",
+      table:
+        AdmissionsTable.DOCUMENTS,
+      fallbackMessage:
+        "Unable to update the application document.",
+    });
+  }
+
+  return data;
+}
+
+export async function deleteApplicationDocument(
+  id,
+) {
+  return updateApplicationDocument(
+    id,
+    {
+      deleted_at:
+        new Date().toISOString(),
+    },
+  );
 }
 
 export async function getInterviews(
@@ -634,6 +1115,32 @@ export async function getStatusHistory(
     fallbackMessage:
       "Unable to load admissions status history.",
   });
+}
+
+export async function createStatusHistory(
+  payload,
+) {
+  const { data, error } = await supabase
+    .from(
+      AdmissionsTable.STATUS_HISTORY,
+    )
+    .insert(payload)
+    .select()
+    .single();
+
+  if (error) {
+    throwRepositoryError({
+      error,
+      operation:
+        "createStatusHistory",
+      table:
+        AdmissionsTable.STATUS_HISTORY,
+      fallbackMessage:
+        "Unable to create status history.",
+    });
+  }
+
+  return data;
 }
 
 export async function getEnrollmentConversions(
@@ -981,28 +1488,81 @@ export async function getDashboardMetrics({
   };
 }
 
-export const admissionsRepository =
-  Object.freeze({
-    getAdmissionCycles,
-    getAdmissionCycle,
-    getInquiries,
-    getInquiry,
-    getApplicants,
-    getApplicant,
-    getGuardians,
-    getGuardian,
-    getApplicantGuardians,
-    getApplications,
-    getApplication,
-    getApplicationDocuments,
-    getInterviews,
-    getInterview,
-    getDecisions,
-    getDecision,
-    getOffers,
-    getOffer,
-    getStatusHistory,
-    getEnrollmentConversions,
-    getEnrollmentConversion,
-    getDashboardMetrics,
-  });
+export async function createAdmissionCycle(payload) {
+  const { data, error } = await supabase
+    .from(AdmissionsTable.CYCLES)
+    .insert(payload)
+    .select()
+    .single();
+
+  if (error) {
+    throwRepositoryError({
+      error,
+      operation: "createAdmissionCycle",
+      table: AdmissionsTable.CYCLES,
+      fallbackMessage:
+        "Unable to create admission cycle.",
+    });
+  }
+
+  return data;
+}
+
+export const admissionsRepository = Object.freeze({
+  createAdmissionCycle,
+  updateAdmissionCycle,
+  archiveAdmissionCycle,
+  deleteAdmissionCycle,
+
+  getAdmissionCycles,
+  getAdmissionCycle,
+
+  createInquiry,
+  updateInquiry,
+  convertInquiryToApplicant,
+
+  getInquiries,
+  getInquiry,
+
+  getApplicants,
+  getApplicant,
+
+  createApplicant,
+  updateApplicant,
+
+
+  getGuardians,
+  getGuardian,
+
+  getApplicantGuardians,
+
+  createApplication,
+  updateApplication,
+
+  getApplications,
+  getApplication,
+
+  getApplicationDocuments,
+  getApplicationDocument,
+
+  createApplicationDocument,
+  updateApplicationDocument,
+  deleteApplicationDocument,
+
+  getInterviews,
+  getInterview,
+
+  getDecisions,
+  getDecision,
+
+  getOffers,
+  getOffer,
+
+  getStatusHistory,
+  createStatusHistory,
+
+  getEnrollmentConversions,
+  getEnrollmentConversion,
+
+  getDashboardMetrics,
+});

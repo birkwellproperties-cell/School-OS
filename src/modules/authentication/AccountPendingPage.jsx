@@ -4,19 +4,42 @@
   Mail,
   ShieldAlert,
 } from "lucide-react";
-import { Link } from "react-router-dom";
 
-import { useAuth } from "../../platform/auth";
-import { BrandLogo } from "../../shared/branding";
+import {
+  Link,
+  Navigate,
+} from "react-router-dom";
+
+import {
+  useAuth,
+} from "../../platform/auth";
+
+import {
+  BrandLogo,
+} from "../../shared/branding";
 
 export default function AccountPendingPage() {
   const {
     user,
     signOut,
+    workspaceReady,
+    accessStatus,
   } = useAuth();
 
   async function handleSignOut() {
     await signOut();
+  }
+
+  if (
+    workspaceReady ||
+    accessStatus === "ready"
+  ) {
+    return (
+      <Navigate
+        to="/app"
+        replace
+      />
+    );
   }
 
   return (
@@ -70,7 +93,8 @@ export default function AccountPendingPage() {
               </p>
 
               <p className="mt-1 break-all text-sm font-semibold text-slate-500">
-                {user?.email || "Unknown account"}
+                {user?.email ||
+                  "Unknown account"}
               </p>
             </div>
           </div>
@@ -89,8 +113,8 @@ export default function AccountPendingPage() {
 
               <p className="mt-1 text-sm font-semibold leading-6 text-slate-500">
                 Contact your organization administrator or Tavaro
-                support to confirm your invitation, membership, role,
-                and school assignment.
+                support to confirm your invitation, membership,
+                role, and school assignment.
               </p>
             </div>
           </div>
@@ -113,6 +137,7 @@ export default function AccountPendingPage() {
               size={17}
               aria-hidden="true"
             />
+
             Sign out
           </button>
         </div>
