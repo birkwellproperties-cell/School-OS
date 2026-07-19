@@ -3,6 +3,7 @@
   BookOpen,
   Boxes,
   ClipboardCheck,
+  FileQuestion,
   GraduationCap,
   Megaphone,
   PackageSearch,
@@ -46,6 +47,14 @@ export const navigationItems = [
     permission: "academics.view",
     group: "Academic Operations",
     order: 40,
+  },
+  {
+    label: "Assessment Center",
+    path: "/app/assessment-center",
+    icon: FileQuestion,
+    permission: "assessments.view",
+    group: "Academic Operations",
+    order: 45,
   },
   {
     label: "Attendance",

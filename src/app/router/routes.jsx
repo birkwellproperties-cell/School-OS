@@ -32,6 +32,10 @@ import {
   AdmissionsCenter,
 } from "../../modules/admissions";
 
+import {
+  AssessmentCenterModule,
+} from "../../modules/assessment-center";
+
 const applicationPages = {
   admissions: {
     title: "Admissions Center",
@@ -276,6 +280,14 @@ export const router = createBrowserRouter([
             element: (
               <ModuleRouteGuard permission="applications.view">
                 <AdmissionsCenter />
+              </ModuleRouteGuard>
+            ),
+          },
+          {
+            path: "assessment-center",
+            element: (
+              <ModuleRouteGuard permission="assessments.view">
+                <AssessmentCenterModule />
               </ModuleRouteGuard>
             ),
           },
