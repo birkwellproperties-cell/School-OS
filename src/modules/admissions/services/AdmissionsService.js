@@ -1,4 +1,4 @@
-﻿import {
+import {
   admissionsRepository,
 } from "../api";
 
@@ -1625,6 +1625,194 @@ function normalizeApplicationDocumentTimestamp(
   return date.toISOString();
 }
 
+
+const DOCUMENT_REQUIREMENT_STATUSES =
+  new Set([
+    "required",
+    "optional",
+    "conditionally_required",
+  ]);
+
+function normalizeDocumentRequirementStatus(
+  value = "required",
+) {
+  const normalized =
+    String(value)
+      .trim()
+      .toLowerCase();
+
+  if (
+    !DOCUMENT_REQUIREMENT_STATUSES.has(
+      normalized,
+    )
+  ) {
+    throw new Error(
+      "Document requirement status is not valid.",
+    );
+  }
+
+  return normalized;
+}
+
+function normalizeDocumentRequirementBoolean(
+  value,
+  defaultValue = false,
+) {
+  if (
+    value === undefined ||
+    value === null ||
+    value === ""
+  ) {
+    return defaultValue;
+  }
+
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  const normalized =
+    String(value)
+      .trim()
+      .toLowerCase();
+
+  if (
+    value === 1 ||
+    normalized === "1" ||
+    normalized === "true"
+  ) {
+    return true;
+  }
+
+  if (
+    value === 0 ||
+    normalized === "0" ||
+    normalized === "false"
+  ) {
+    return false;
+  }
+
+  throw new Error(
+    "Boolean field value is not valid.",
+  );
+}
+
+function normalizeDocumentRequirementPayload(
+  payload = {},
+  {
+    partial = false,
+  } = {},
+) {
+  const normalized = {};
+
+  if (
+    !partial ||
+    payload.document_type !== undefined
+  ) {
+    normalized.document_type =
+      normalizeRequiredText(
+        payload.document_type,
+        "Document type",
+      )
+        .toLowerCase()
+        .replaceAll(/\s+/g, "_");
+  }
+
+  if (
+    !partial ||
+    payload.document_label !== undefined
+  ) {
+    normalized.document_label =
+      normalizeRequiredText(
+        payload.document_label,
+        "Document label",
+      );
+  }
+
+  if (
+    !partial ||
+    payload.instructions !== undefined
+  ) {
+    normalized.instructions =
+      normalizeOptionalText(
+        payload.instructions,
+      );
+  }
+
+  if (
+    !partial ||
+    payload.requirement_status !==
+      undefined
+  ) {
+    normalized.requirement_status =
+      normalizeDocumentRequirementStatus(
+        payload.requirement_status,
+      );
+  }
+
+  if (
+    !partial ||
+    payload.display_order !== undefined
+  ) {
+    normalized.display_order =
+      normalizeOptionalNonNegativeInteger(
+        payload.display_order,
+        "Display order",
+      ) ?? 0;
+  }
+
+  if (
+    !partial ||
+    payload.review_required !==
+      undefined
+  ) {
+    normalized.review_required =
+      normalizeDocumentRequirementBoolean(
+        payload.review_required,
+        true,
+      );
+  }
+
+  if (
+    !partial ||
+    payload.is_active !== undefined
+  ) {
+    normalized.is_active =
+      normalizeDocumentRequirementBoolean(
+        payload.is_active,
+        true,
+      );
+  }
+
+  if (
+    !partial ||
+    payload.metadata !== undefined
+  ) {
+    normalized.metadata =
+      payload.metadata &&
+      typeof payload.metadata ===
+        "object" &&
+      !Array.isArray(
+        payload.metadata,
+      )
+        ? payload.metadata
+        : {};
+  }
+
+  return normalized;
+}
+
+function assertDocumentRequirementUpdates(
+  updates,
+) {
+  if (
+    !updates ||
+    Object.keys(updates).length === 0
+  ) {
+    throw new Error(
+      "At least one document requirement field must be provided.",
+    );
+  }
+}
 function normalizeApplicationDocumentPayload(
   payload = {},
   {
@@ -1831,6 +2019,7 @@ function normalizeApplicationDocumentPayload(
   );
 
   const identifierFields = [
+    "requirement_id",
     "uploaded_by",
     "verified_by",
     "rejected_by",
@@ -2401,6 +2590,33 @@ export class AdmissionsService {
       .getInquiry(id);
   }
 
+  async getReviewerProfiles(
+    ids = [],
+  ) {
+    const normalizedIds = [
+      ...new Set(
+        (
+          Array.isArray(ids)
+            ? ids
+            : []
+        )
+          .map((id) =>
+            String(id || "").trim(),
+          )
+          .filter(Boolean),
+      ),
+    ];
+
+    if (!normalizedIds.length) {
+      return [];
+    }
+
+    return this.repository
+      .getProfilesByIds(
+        normalizedIds,
+      );
+  }
+
   async getApplicants(
     filters = {},
   ) {
@@ -2758,6 +2974,172 @@ export class AdmissionsService {
     );
 }
 
+async getDocumentRequirements(
+  filters = {},
+) {
+  return this.repository
+    .getAdmissionDocumentRequirements(
+      mergeScope(
+        this.scope,
+        filters,
+      ),
+    );
+}
+
+async getDocumentRequirement(
+  requirementId,
+) {
+  requireIdentifier(
+    requirementId,
+    "Document requirement id",
+  );
+
+  return this.repository
+    .getAdmissionDocumentRequirement(
+      requirementId,
+    );
+}
+
+async createDocumentRequirement(
+  payload = {},
+) {
+  const normalized =
+    normalizeDocumentRequirementPayload(
+      payload,
+    );
+
+  const admissionCycleId =
+    normalizeOptionalIdentifier(
+      payload.admission_cycle_id,
+    ) ??
+    this.scope.admissionCycleId;
+
+  requireIdentifier(
+    admissionCycleId,
+    "Admission cycle id",
+  );
+
+  return this.repository
+    .createAdmissionDocumentRequirement({
+      organization_id:
+        this.scope.organizationId,
+
+      school_id:
+        this.scope.schoolId,
+
+      campus_id:
+        normalizeOptionalIdentifier(
+          payload.campus_id,
+        ) ??
+        this.scope.campusId ??
+        null,
+
+      admission_cycle_id:
+        admissionCycleId,
+
+      ...normalized,
+    });
+}
+
+async updateDocumentRequirement(
+  requirementId,
+  updates = {},
+) {
+  requireIdentifier(
+    requirementId,
+    "Document requirement id",
+  );
+
+  const existingRequirement =
+    await this.repository
+      .getAdmissionDocumentRequirement(
+        requirementId,
+      );
+
+  if (!existingRequirement) {
+    throw new Error(
+      "Document requirement was not found.",
+    );
+  }
+
+  const normalized =
+    normalizeDocumentRequirementPayload(
+      updates,
+      {
+        partial: true,
+      },
+    );
+
+  assertDocumentRequirementUpdates(
+    normalized,
+  );
+
+  return this.repository
+    .updateAdmissionDocumentRequirement(
+      requirementId,
+      normalized,
+    );
+}
+
+async archiveDocumentRequirement(
+  requirementId,
+) {
+  requireIdentifier(
+    requirementId,
+    "Document requirement id",
+  );
+
+  const existingRequirement =
+    await this.repository
+      .getAdmissionDocumentRequirement(
+        requirementId,
+      );
+
+  if (!existingRequirement) {
+    throw new Error(
+      "Document requirement was not found.",
+    );
+  }
+
+  if (
+    existingRequirement.archived_at ||
+    existingRequirement.is_active ===
+      false
+  ) {
+    return existingRequirement;
+  }
+
+  return this.repository
+    .archiveAdmissionDocumentRequirement(
+      requirementId,
+    );
+}
+
+async deleteDocumentRequirement(
+  requirementId,
+) {
+  requireIdentifier(
+    requirementId,
+    "Document requirement id",
+  );
+
+  const existingRequirement =
+    await this.repository
+      .getAdmissionDocumentRequirement(
+        requirementId,
+      );
+
+  if (!existingRequirement) {
+    throw new Error(
+      "Document requirement was not found.",
+    );
+  }
+
+  return this.repository
+    .deleteAdmissionDocumentRequirement(
+      requirementId,
+    );
+}
 async getApplicationDocuments(
   applicationId,
   filters = {},
@@ -2892,6 +3274,275 @@ async updateApplicationDocument(
     );
 }
 
+async markApplicationDocumentUnderReview(
+  documentId,
+) {
+  requireIdentifier(
+    documentId,
+    "Application document id",
+  );
+
+  const existingDocument =
+    await this.repository
+      .getApplicationDocument(
+        documentId,
+      );
+
+  if (!existingDocument) {
+    throw new Error(
+      "The application document could not be found.",
+    );
+  }
+
+  if (
+    ![
+      "uploaded",
+      "rejected",
+      "requested",
+    ].includes(
+      existingDocument.status,
+    )
+  ) {
+    throw new Error(
+      "Only uploaded, rejected, or replacement-requested documents can be placed under review.",
+    );
+  }
+
+  return this.updateApplicationDocument(
+    documentId,
+    {
+      status: "under_review",
+
+      verified_at: null,
+      verified_by: null,
+
+      rejected_at: null,
+      rejected_by: null,
+      rejection_reason: null,
+    },
+  );
+}
+
+async verifyApplicationDocument(
+  documentId,
+  {
+    reviewerId,
+    notes,
+  } = {},
+) {
+  requireIdentifier(
+    documentId,
+    "Application document id",
+  );
+
+  requireIdentifier(
+    reviewerId,
+    "Document reviewer id",
+  );
+
+  const existingDocument =
+    await this.repository
+      .getApplicationDocument(
+        documentId,
+      );
+
+  if (!existingDocument) {
+    throw new Error(
+      "The application document could not be found.",
+    );
+  }
+
+  if (
+    ![
+      "uploaded",
+      "under_review",
+      "rejected",
+    ].includes(
+      existingDocument.status,
+    )
+  ) {
+    throw new Error(
+      "This document cannot be verified from its current status.",
+    );
+  }
+
+  return this.updateApplicationDocument(
+    documentId,
+    {
+      status: "verified",
+
+      verified_at:
+        new Date().toISOString(),
+
+      verified_by:
+        reviewerId,
+
+      rejected_at: null,
+      rejected_by: null,
+      rejection_reason: null,
+
+      notes:
+        normalizeOptionalText(
+          notes,
+        ) ??
+        existingDocument.notes ??
+        null,
+    },
+  );
+}
+
+async rejectApplicationDocument(
+  documentId,
+  {
+    reviewerId,
+    reason,
+    notes,
+  } = {},
+) {
+  requireIdentifier(
+    documentId,
+    "Application document id",
+  );
+
+  requireIdentifier(
+    reviewerId,
+    "Document reviewer id",
+  );
+
+  const normalizedReason =
+    normalizeRequiredText(
+      reason,
+      "Rejection reason",
+    );
+
+  const existingDocument =
+    await this.repository
+      .getApplicationDocument(
+        documentId,
+      );
+
+  if (!existingDocument) {
+    throw new Error(
+      "The application document could not be found.",
+    );
+  }
+
+  if (
+    ![
+      "uploaded",
+      "under_review",
+      "verified",
+    ].includes(
+      existingDocument.status,
+    )
+  ) {
+    throw new Error(
+      "This document cannot be rejected from its current status.",
+    );
+  }
+
+  return this.updateApplicationDocument(
+    documentId,
+    {
+      status: "rejected",
+
+      rejected_at:
+        new Date().toISOString(),
+
+      rejected_by:
+        reviewerId,
+
+      rejection_reason:
+        normalizedReason,
+
+      verified_at: null,
+      verified_by: null,
+
+      notes:
+        normalizeOptionalText(
+          notes,
+        ) ??
+        existingDocument.notes ??
+        null,
+    },
+  );
+}
+
+async requestApplicationDocumentReplacement(
+  documentId,
+  {
+    reviewerId,
+    reason,
+  } = {},
+) {
+  requireIdentifier(
+    documentId,
+    "Application document id",
+  );
+
+  requireIdentifier(
+    reviewerId,
+    "Document reviewer id",
+  );
+
+  const normalizedReason =
+    normalizeRequiredText(
+      reason,
+      "Replacement reason",
+    );
+
+  const existingDocument =
+    await this.repository
+      .getApplicationDocument(
+        documentId,
+      );
+
+  if (!existingDocument) {
+    throw new Error(
+      "The application document could not be found.",
+    );
+  }
+
+  if (
+    ![
+      "uploaded",
+      "under_review",
+      "verified",
+      "rejected",
+    ].includes(
+      existingDocument.status,
+    )
+  ) {
+    throw new Error(
+      "A replacement cannot be requested from the document's current status.",
+    );
+  }
+
+  const replacementNote = [
+    existingDocument.notes,
+    `Replacement requested: ${normalizedReason}`,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  return this.updateApplicationDocument(
+    documentId,
+    {
+      status: "requested",
+
+      verified_at: null,
+      verified_by: null,
+
+      rejected_at: null,
+      rejected_by: null,
+      rejection_reason: null,
+
+      notes:
+        replacementNote,
+    },
+  );
+}
+
 async deleteApplicationDocument(
   documentId,
 ) {
@@ -2962,6 +3613,504 @@ async deleteApplicationDocument(
       .getDecision(id);
   }
 
+  async createDecision(
+    payload = {},
+  ) {
+    requireIdentifier(
+      payload.application_id,
+      "Application id",
+    );
+
+    const decision =
+      String(
+        payload.decision ?? "",
+      )
+        .trim()
+        .toLowerCase();
+
+    const allowedDecisions =
+      new Set([
+        "approved",
+        "conditionally_approved",
+        "waitlisted",
+        "rejected",
+        "deferred",
+        "additional_review",
+      ]);
+
+    if (
+      !allowedDecisions.has(
+        decision,
+      )
+    ) {
+      throw new Error(
+        "Decision must be approved, conditionally approved, waitlisted, rejected, deferred, or additional review.",
+      );
+    }
+
+    const application =
+      await this.repository
+        .getApplication(
+          payload.application_id,
+        );
+
+    if (!application) {
+      throw new Error(
+        "The admission application could not be found.",
+      );
+    }
+
+    const effectiveOn =
+      payload.effective_on
+        ? new Date(
+            payload.effective_on,
+          )
+            .toISOString()
+            .slice(0, 10)
+        : null;
+
+    const expiresOn =
+      payload.expires_on
+        ? new Date(
+            payload.expires_on,
+          )
+            .toISOString()
+            .slice(0, 10)
+        : null;
+
+    if (
+      effectiveOn &&
+      expiresOn &&
+      expiresOn < effectiveOn
+    ) {
+      throw new Error(
+        "Decision expiry date cannot be earlier than its effective date.",
+      );
+    }
+
+    return this.repository
+      .createDecision({
+        organization_id:
+          application.organization_id ??
+          this.scope.organizationId,
+
+        school_id:
+          application.school_id ??
+          this.scope.schoolId,
+
+        campus_id:
+          application.campus_id ??
+          this.scope.campusId ??
+          null,
+
+        admission_cycle_id:
+          application.admission_cycle_id,
+
+        application_id:
+          application.id,
+
+        applicant_id:
+          application.applicant_id,
+
+        decision,
+
+        status: "draft",
+
+        decision_reason:
+          normalizeOptionalText(
+            payload.decision_reason,
+          ),
+
+        conditions:
+          normalizeOptionalText(
+            payload.conditions,
+          ),
+
+        review_summary:
+          normalizeOptionalText(
+            payload.review_summary,
+          ),
+
+        internal_notes:
+          normalizeOptionalText(
+            payload.internal_notes,
+          ),
+
+        effective_on:
+          effectiveOn,
+
+        expires_on:
+          expiresOn,
+
+        supersedes_decision_id:
+          normalizeOptionalIdentifier(
+            payload
+              .supersedes_decision_id,
+          ),
+
+        metadata:
+          payload.metadata &&
+          typeof payload.metadata ===
+            "object" &&
+          !Array.isArray(
+            payload.metadata,
+          )
+            ? payload.metadata
+            : {},
+      });
+  }
+
+  async updateDecision(
+    decisionId,
+    updates = {},
+  ) {
+    requireIdentifier(
+      decisionId,
+      "Decision id",
+    );
+
+    const existingDecision =
+      await this.repository
+        .getDecision(
+          decisionId,
+        );
+
+    if (!existingDecision) {
+      throw new Error(
+        "The admission decision could not be found.",
+      );
+    }
+
+    if (
+      !updates ||
+      Object.keys(
+        updates,
+      ).length === 0
+    ) {
+      throw new Error(
+        "At least one decision field must be provided.",
+      );
+    }
+
+    if (
+      ![
+        "draft",
+        "pending_approval",
+      ].includes(
+        existingDecision.status,
+      )
+    ) {
+      throw new Error(
+        "Only draft or pending approval decisions can be edited.",
+      );
+    }
+
+    const normalized = {};
+
+    if (
+      updates.decision !==
+      undefined
+    ) {
+      const decision =
+        String(
+          updates.decision,
+        )
+          .trim()
+          .toLowerCase();
+
+      const allowedDecisions =
+        new Set([
+          "approved",
+          "conditionally_approved",
+          "waitlisted",
+          "rejected",
+          "deferred",
+          "additional_review",
+        ]);
+
+      if (
+        !allowedDecisions.has(
+          decision,
+        )
+      ) {
+        throw new Error(
+          "Decision must be approved, conditionally approved, waitlisted, rejected, deferred, or additional review.",
+        );
+      }
+
+      normalized.decision =
+        decision;
+    }
+
+    for (
+      const field of [
+        "decision_reason",
+        "conditions",
+        "review_summary",
+        "internal_notes",
+      ]
+    ) {
+      if (
+        updates[field] !==
+        undefined
+      ) {
+        normalized[field] =
+          normalizeOptionalText(
+            updates[field],
+          );
+      }
+    }
+
+    if (
+      updates.effective_on !==
+      undefined
+    ) {
+      normalized.effective_on =
+        normalizeOptionalDate(
+          updates.effective_on,
+          "Decision effective date",
+        );
+    }
+
+    if (
+      updates.expires_on !==
+      undefined
+    ) {
+      normalized.expires_on =
+        normalizeOptionalDate(
+          updates.expires_on,
+          "Decision expiry date",
+        );
+    }
+
+    if (
+      updates
+        .supersedes_decision_id !==
+      undefined
+    ) {
+      normalized
+        .supersedes_decision_id =
+        normalizeOptionalIdentifier(
+          updates
+            .supersedes_decision_id,
+        );
+    }
+
+    if (
+      updates.metadata !==
+      undefined
+    ) {
+      if (
+        !updates.metadata ||
+        typeof updates.metadata !==
+          "object" ||
+        Array.isArray(
+          updates.metadata,
+        )
+      ) {
+        throw new Error(
+          "Decision metadata must be an object.",
+        );
+      }
+
+      normalized.metadata =
+        updates.metadata;
+    }
+
+    const effectiveOn =
+      normalized.effective_on ??
+      existingDecision.effective_on;
+
+    const expiresOn =
+      normalized.expires_on ??
+      existingDecision.expires_on;
+
+    if (
+      effectiveOn &&
+      expiresOn &&
+      expiresOn < effectiveOn
+    ) {
+      throw new Error(
+        "Decision expiry date cannot be earlier than its effective date.",
+      );
+    }
+
+    return this.repository
+      .updateDecision(
+        decisionId,
+        normalized,
+      );
+  }
+
+  async submitDecisionForApproval(
+    decisionId,
+    {
+      actorId,
+    } = {},
+  ) {
+    requireIdentifier(
+      decisionId,
+      "Decision id",
+    );
+
+    requireIdentifier(
+      actorId,
+      "Decision recommender id",
+    );
+
+    const decision =
+      await this.repository
+        .getDecision(
+          decisionId,
+        );
+
+    if (!decision) {
+      throw new Error(
+        "The admission decision could not be found.",
+      );
+    }
+
+    if (
+      decision.status !==
+      "draft"
+    ) {
+      throw new Error(
+        "Only a draft decision can be submitted for approval.",
+      );
+    }
+
+    return this.repository
+      .updateDecision(
+        decisionId,
+        {
+          status:
+            "pending_approval",
+
+          recommended_by:
+            actorId,
+
+          recommended_at:
+            new Date()
+              .toISOString(),
+
+          updated_by:
+            actorId,
+        },
+      );
+  }
+
+  async approveDecision(
+    decisionId,
+    {
+      actorId,
+    } = {},
+  ) {
+    requireIdentifier(
+      decisionId,
+      "Decision id",
+    );
+
+    requireIdentifier(
+      actorId,
+      "Decision approver id",
+    );
+
+    const decision =
+      await this.repository
+        .getDecision(
+          decisionId,
+        );
+
+    if (!decision) {
+      throw new Error(
+        "The admission decision could not be found.",
+      );
+    }
+
+    if (
+      decision.status !==
+      "pending_approval"
+    ) {
+      throw new Error(
+        "Only a decision pending approval can be approved.",
+      );
+    }
+
+    return this.repository
+      .updateDecision(
+        decisionId,
+        {
+          status: "approved",
+
+          approved_by:
+            actorId,
+
+          approved_at:
+            new Date()
+              .toISOString(),
+
+          updated_by:
+            actorId,
+        },
+      );
+  }
+
+  async publishDecision(
+    decisionId,
+    {
+      actorId,
+    } = {},
+  ) {
+    requireIdentifier(
+      decisionId,
+      "Decision id",
+    );
+
+    requireIdentifier(
+      actorId,
+      "Decision publisher id",
+    );
+
+    const decision =
+      await this.repository
+        .getDecision(
+          decisionId,
+        );
+
+    if (!decision) {
+      throw new Error(
+        "The admission decision could not be found.",
+      );
+    }
+
+    if (
+      decision.status !==
+      "approved"
+    ) {
+      throw new Error(
+        "Only an approved decision can be published.",
+      );
+    }
+
+    return this.repository
+      .updateDecision(
+        decisionId,
+        {
+          status: "published",
+
+          published_by:
+            actorId,
+
+          published_at:
+            new Date()
+              .toISOString(),
+
+          updated_by:
+            actorId,
+        },
+      );
+  }
+
   async getOffers(
     filters = {},
   ) {
@@ -2984,6 +4133,1420 @@ async deleteApplicationDocument(
       .getOffer(id);
   }
 
+  async createOffer(
+    payload = {},
+  ) {
+    requireIdentifier(
+      payload.application_id,
+      "Application id",
+    );
+
+    requireIdentifier(
+      payload.decision_id,
+      "Decision id",
+    );
+
+    const offerNumber =
+      String(
+        payload.offer_number ?? "",
+      )
+        .trim();
+
+    if (!offerNumber) {
+      throw new Error(
+        "Offer number is required.",
+      );
+    }
+
+    const entryGradeLevel =
+      String(
+        payload.entry_grade_level ?? "",
+      )
+        .trim();
+
+    if (!entryGradeLevel) {
+      throw new Error(
+        "Entry grade level is required.",
+      );
+    }
+
+    const [
+      application,
+      decision,
+    ] = await Promise.all([
+      this.repository
+        .getApplication(
+          payload.application_id,
+        ),
+
+      this.repository
+        .getDecision(
+          payload.decision_id,
+        ),
+    ]);
+
+    if (!application) {
+      throw new Error(
+        "The admission application could not be found.",
+      );
+    }
+
+    if (!decision) {
+      throw new Error(
+        "The admission decision could not be found.",
+      );
+    }
+
+    if (
+      decision.application_id !==
+      application.id
+    ) {
+      throw new Error(
+        "The selected admission decision does not belong to this application.",
+      );
+    }
+
+    if (
+      decision.applicant_id !==
+      application.applicant_id
+    ) {
+      throw new Error(
+        "The selected admission decision does not belong to this applicant.",
+      );
+    }
+
+    if (
+      ![
+        "approved",
+        "published",
+      ].includes(
+        decision.status,
+      )
+    ) {
+      throw new Error(
+        "An offer can only be created from an approved or published admission decision.",
+      );
+    }
+
+    if (
+      ![
+        "approved",
+        "conditionally_approved",
+      ].includes(
+        decision.decision,
+      )
+    ) {
+      throw new Error(
+        "An offer can only be created for an approved or conditionally approved applicant.",
+      );
+    }
+
+    const intendedStartDate =
+      payload.intended_start_date
+        ? normalizeOptionalDate(
+            payload.intended_start_date,
+            "Intended start date",
+          )
+        : null;
+
+    const offeredOn =
+      payload.offered_on
+        ? normalizeOptionalDate(
+            payload.offered_on,
+            "Offer date",
+          )
+        : null;
+
+    const depositDueOn =
+      payload.deposit_due_on
+        ? normalizeOptionalDate(
+            payload.deposit_due_on,
+            "Deposit due date",
+          )
+        : null;
+
+    let expiresAt = null;
+
+    if (
+      payload.expires_at !==
+        undefined &&
+      payload.expires_at !==
+        null &&
+      payload.expires_at !== ""
+    ) {
+      const parsedExpiresAt =
+        new Date(
+          payload.expires_at,
+        );
+
+      if (
+        Number.isNaN(
+          parsedExpiresAt.getTime(),
+        )
+      ) {
+        throw new Error(
+          "Offer expiry date and time is invalid.",
+        );
+      }
+
+      expiresAt =
+        parsedExpiresAt
+          .toISOString();
+    }
+
+    const normalizeAmount = (
+      value,
+      label,
+    ) => {
+      if (
+        value === undefined ||
+        value === null ||
+        value === ""
+      ) {
+        return null;
+      }
+
+      const amount =
+        Number(value);
+
+      if (
+        !Number.isFinite(amount) ||
+        amount < 0
+      ) {
+        throw new Error(
+          `${label} must be a non-negative number.`,
+        );
+      }
+
+      return amount;
+    };
+
+    const tuitionAmount =
+      normalizeAmount(
+        payload.tuition_amount,
+        "Tuition amount",
+      );
+
+    const depositAmount =
+      normalizeAmount(
+        payload.deposit_amount,
+        "Deposit amount",
+      );
+
+    const scholarshipAmount =
+      normalizeAmount(
+        payload.scholarship_amount,
+        "Scholarship amount",
+      );
+
+    const financialAidAmount =
+      normalizeAmount(
+        payload.financial_aid_amount,
+        "Financial aid amount",
+      );
+
+    let currencyCode = null;
+
+    if (
+      payload.currency_code !==
+        undefined &&
+      payload.currency_code !==
+        null &&
+      payload.currency_code !== ""
+    ) {
+      currencyCode =
+        String(
+          payload.currency_code,
+        )
+          .trim()
+          .toUpperCase();
+
+      if (
+        !/^[A-Z]{3}$/.test(
+          currencyCode,
+        )
+      ) {
+        throw new Error(
+          "Currency code must contain exactly three letters.",
+        );
+      }
+    }
+
+    if (
+      depositDueOn &&
+      offeredOn &&
+      depositDueOn < offeredOn
+    ) {
+      throw new Error(
+        "Deposit due date cannot be earlier than the offer date.",
+      );
+    }
+
+    if (
+      expiresAt &&
+      offeredOn
+    ) {
+      const offeredAtStart =
+        new Date(
+          `${offeredOn}T00:00:00.000Z`,
+        );
+
+      if (
+        new Date(expiresAt) <
+        offeredAtStart
+      ) {
+        throw new Error(
+          "Offer expiry cannot be earlier than the offer date.",
+        );
+      }
+    }
+
+    if (
+      payload.supersedes_offer_id
+    ) {
+      const supersededOffer =
+        await this.repository
+          .getOffer(
+            payload
+              .supersedes_offer_id,
+          );
+
+      if (!supersededOffer) {
+        throw new Error(
+          "The superseded offer could not be found.",
+        );
+      }
+
+      if (
+        supersededOffer.application_id !==
+        application.id
+      ) {
+        throw new Error(
+          "The superseded offer must belong to the same application.",
+        );
+      }
+    }
+
+    if (
+      payload.metadata !==
+        undefined &&
+      (
+        !payload.metadata ||
+        typeof payload.metadata !==
+          "object" ||
+        Array.isArray(
+          payload.metadata,
+        )
+      )
+    ) {
+      throw new Error(
+        "Offer metadata must be an object.",
+      );
+    }
+
+    return this.repository
+      .createOffer({
+        organization_id:
+          application.organization_id ??
+          this.scope.organizationId,
+
+        school_id:
+          application.school_id ??
+          this.scope.schoolId,
+
+        campus_id:
+          application.campus_id ??
+          this.scope.campusId ??
+          null,
+
+        admission_cycle_id:
+          application.admission_cycle_id,
+
+        application_id:
+          application.id,
+
+        applicant_id:
+          application.applicant_id,
+
+        decision_id:
+          decision.id,
+
+        offer_number:
+          offerNumber,
+
+        status: "draft",
+
+        entry_grade_level:
+          entryGradeLevel,
+
+        intended_start_date:
+          intendedStartDate,
+
+        offered_on:
+          offeredOn,
+
+        expires_at:
+          expiresAt,
+
+        tuition_amount:
+          tuitionAmount,
+
+        currency_code:
+          currencyCode,
+
+        deposit_amount:
+          depositAmount,
+
+        deposit_due_on:
+          depositDueOn,
+
+        scholarship_amount:
+          scholarshipAmount,
+
+        financial_aid_amount:
+          financialAidAmount,
+
+        conditions:
+          normalizeOptionalText(
+            payload.conditions,
+          ),
+
+        offer_message:
+          normalizeOptionalText(
+            payload.offer_message,
+          ),
+
+        internal_notes:
+          normalizeOptionalText(
+            payload.internal_notes,
+          ),
+
+        supersedes_offer_id:
+          normalizeOptionalIdentifier(
+            payload
+              .supersedes_offer_id,
+          ),
+
+        metadata:
+          payload.metadata ?? {},
+      });
+  }
+
+  async updateOffer(
+    offerId,
+    updates = {},
+  ) {
+    requireIdentifier(
+      offerId,
+      "Offer id",
+    );
+
+    const existingOffer =
+      await this.repository
+        .getOffer(
+          offerId,
+        );
+
+    if (!existingOffer) {
+      throw new Error(
+        "The admission offer could not be found.",
+      );
+    }
+
+    if (
+      !updates ||
+      Object.keys(
+        updates,
+      ).length === 0
+    ) {
+      throw new Error(
+        "At least one offer field must be provided.",
+      );
+    }
+
+    if (
+      ![
+        "draft",
+        "pending_approval",
+      ].includes(
+        existingOffer.status,
+      )
+    ) {
+      throw new Error(
+        "Only draft or pending approval offers can be edited.",
+      );
+    }
+
+    const normalized = {};
+
+    if (
+      updates.offer_number !==
+      undefined
+    ) {
+      const offerNumber =
+        String(
+          updates.offer_number ?? "",
+        )
+          .trim();
+
+      if (!offerNumber) {
+        throw new Error(
+          "Offer number is required.",
+        );
+      }
+
+      normalized.offer_number =
+        offerNumber;
+    }
+
+    if (
+      updates.entry_grade_level !==
+      undefined
+    ) {
+      const entryGradeLevel =
+        String(
+          updates.entry_grade_level ??
+            "",
+        )
+          .trim();
+
+      if (!entryGradeLevel) {
+        throw new Error(
+          "Entry grade level is required.",
+        );
+      }
+
+      normalized
+        .entry_grade_level =
+        entryGradeLevel;
+    }
+
+    if (
+      updates.intended_start_date !==
+      undefined
+    ) {
+      normalized
+        .intended_start_date =
+        normalizeOptionalDate(
+          updates
+            .intended_start_date,
+          "Intended start date",
+        );
+    }
+
+    if (
+      updates.offered_on !==
+      undefined
+    ) {
+      normalized.offered_on =
+        normalizeOptionalDate(
+          updates.offered_on,
+          "Offer date",
+        );
+    }
+
+    if (
+      updates.deposit_due_on !==
+      undefined
+    ) {
+      normalized.deposit_due_on =
+        normalizeOptionalDate(
+          updates.deposit_due_on,
+          "Deposit due date",
+        );
+    }
+
+    if (
+      updates.expires_at !==
+      undefined
+    ) {
+      if (
+        updates.expires_at ===
+          null ||
+        updates.expires_at === ""
+      ) {
+        normalized.expires_at =
+          null;
+      } else {
+        const parsedExpiresAt =
+          new Date(
+            updates.expires_at,
+          );
+
+        if (
+          Number.isNaN(
+            parsedExpiresAt
+              .getTime(),
+          )
+        ) {
+          throw new Error(
+            "Offer expiry date and time is invalid.",
+          );
+        }
+
+        normalized.expires_at =
+          parsedExpiresAt
+            .toISOString();
+      }
+    }
+
+    const normalizeAmount = (
+      value,
+      label,
+    ) => {
+      if (
+        value === undefined
+      ) {
+        return undefined;
+      }
+
+      if (
+        value === null ||
+        value === ""
+      ) {
+        return null;
+      }
+
+      const amount =
+        Number(value);
+
+      if (
+        !Number.isFinite(amount) ||
+        amount < 0
+      ) {
+        throw new Error(
+          `${label} must be a non-negative number.`,
+        );
+      }
+
+      return amount;
+    };
+
+    const amountFields = [
+      [
+        "tuition_amount",
+        "Tuition amount",
+      ],
+      [
+        "deposit_amount",
+        "Deposit amount",
+      ],
+      [
+        "scholarship_amount",
+        "Scholarship amount",
+      ],
+      [
+        "financial_aid_amount",
+        "Financial aid amount",
+      ],
+    ];
+
+    for (
+      const [
+        field,
+        label,
+      ] of amountFields
+    ) {
+      if (
+        updates[field] !==
+        undefined
+      ) {
+        normalized[field] =
+          normalizeAmount(
+            updates[field],
+            label,
+          );
+      }
+    }
+
+    if (
+      updates.currency_code !==
+      undefined
+    ) {
+      if (
+        updates.currency_code ===
+          null ||
+        updates.currency_code === ""
+      ) {
+        normalized.currency_code =
+          null;
+      } else {
+        const currencyCode =
+          String(
+            updates.currency_code,
+          )
+            .trim()
+            .toUpperCase();
+
+        if (
+          !/^[A-Z]{3}$/.test(
+            currencyCode,
+          )
+        ) {
+          throw new Error(
+            "Currency code must contain exactly three letters.",
+          );
+        }
+
+        normalized.currency_code =
+          currencyCode;
+      }
+    }
+
+    for (
+      const field of [
+        "conditions",
+        "offer_message",
+        "internal_notes",
+      ]
+    ) {
+      if (
+        updates[field] !==
+        undefined
+      ) {
+        normalized[field] =
+          normalizeOptionalText(
+            updates[field],
+          );
+      }
+    }
+
+    if (
+      updates
+        .supersedes_offer_id !==
+      undefined
+    ) {
+      const supersedesOfferId =
+        normalizeOptionalIdentifier(
+          updates
+            .supersedes_offer_id,
+        );
+
+      if (
+        supersedesOfferId ===
+        offerId
+      ) {
+        throw new Error(
+          "An offer cannot supersede itself.",
+        );
+      }
+
+      if (supersedesOfferId) {
+        const supersededOffer =
+          await this.repository
+            .getOffer(
+              supersedesOfferId,
+            );
+
+        if (!supersededOffer) {
+          throw new Error(
+            "The superseded offer could not be found.",
+          );
+        }
+
+        if (
+          supersededOffer
+            .application_id !==
+          existingOffer
+            .application_id
+        ) {
+          throw new Error(
+            "The superseded offer must belong to the same application.",
+          );
+        }
+      }
+
+      normalized
+        .supersedes_offer_id =
+        supersedesOfferId;
+    }
+
+    if (
+      updates.metadata !==
+      undefined
+    ) {
+      if (
+        !updates.metadata ||
+        typeof updates.metadata !==
+          "object" ||
+        Array.isArray(
+          updates.metadata,
+        )
+      ) {
+        throw new Error(
+          "Offer metadata must be an object.",
+        );
+      }
+
+      normalized.metadata =
+        updates.metadata;
+    }
+
+    const offeredOn =
+      normalized.offered_on ??
+      existingOffer.offered_on;
+
+    const depositDueOn =
+      normalized.deposit_due_on ??
+      existingOffer.deposit_due_on;
+
+    const expiresAt =
+      normalized.expires_at ??
+      existingOffer.expires_at;
+
+    if (
+      depositDueOn &&
+      offeredOn &&
+      depositDueOn < offeredOn
+    ) {
+      throw new Error(
+        "Deposit due date cannot be earlier than the offer date.",
+      );
+    }
+
+    if (
+      expiresAt &&
+      offeredOn
+    ) {
+      const offeredAtStart =
+        new Date(
+          `${offeredOn}T00:00:00.000Z`,
+        );
+
+      if (
+        new Date(expiresAt) <
+        offeredAtStart
+      ) {
+        throw new Error(
+          "Offer expiry cannot be earlier than the offer date.",
+        );
+      }
+    }
+
+    if (
+      Object.keys(
+        normalized,
+      ).length === 0
+    ) {
+      throw new Error(
+        "No supported offer fields were provided.",
+      );
+    }
+
+    return this.repository
+      .updateOffer(
+        offerId,
+        normalized,
+      );
+  }
+
+  async submitOfferForApproval(
+    offerId,
+    {
+      actorId,
+    } = {},
+  ) {
+    requireIdentifier(
+      offerId,
+      "Offer id",
+    );
+
+    requireIdentifier(
+      actorId,
+      "Offer submitter id",
+    );
+
+    const offer =
+      await this.repository
+        .getOffer(
+          offerId,
+        );
+
+    if (!offer) {
+      throw new Error(
+        "The admission offer could not be found.",
+      );
+    }
+
+    if (
+      offer.status !==
+      "draft"
+    ) {
+      throw new Error(
+        "Only a draft offer can be submitted for approval.",
+      );
+    }
+
+    if (
+      !offer.offer_number ||
+      !String(
+        offer.offer_number,
+      ).trim()
+    ) {
+      throw new Error(
+        "An offer number is required before submission.",
+      );
+    }
+
+    if (
+      !offer.entry_grade_level ||
+      !String(
+        offer.entry_grade_level,
+      ).trim()
+    ) {
+      throw new Error(
+        "An entry grade level is required before submission.",
+      );
+    }
+
+    const decision =
+      await this.repository
+        .getDecision(
+          offer.decision_id,
+        );
+
+    if (!decision) {
+      throw new Error(
+        "The admission decision linked to this offer could not be found.",
+      );
+    }
+
+    if (
+      ![
+        "approved",
+        "published",
+      ].includes(
+        decision.status,
+      )
+    ) {
+      throw new Error(
+        "The linked admission decision must be approved or published before the offer can be submitted.",
+      );
+    }
+
+    if (
+      ![
+        "approved",
+        "conditionally_approved",
+      ].includes(
+        decision.decision,
+      )
+    ) {
+      throw new Error(
+        "Only approved or conditionally approved decisions can produce an admission offer.",
+      );
+    }
+
+    return this.repository
+      .updateOffer(
+        offerId,
+        {
+          status:
+            "pending_approval",
+
+          updated_by:
+            actorId,
+        },
+      );
+  }
+
+  async approveOffer(
+    offerId,
+    {
+      actorId,
+    } = {},
+  ) {
+    requireIdentifier(
+      offerId,
+      "Offer id",
+    );
+
+    requireIdentifier(
+      actorId,
+      "Offer approver id",
+    );
+
+    const offer =
+      await this.repository
+        .getOffer(
+          offerId,
+        );
+
+    if (!offer) {
+      throw new Error(
+        "The admission offer could not be found.",
+      );
+    }
+
+    if (
+      offer.status !==
+      "pending_approval"
+    ) {
+      throw new Error(
+        "Only an offer pending approval can be approved.",
+      );
+    }
+
+    const approvedAt =
+      new Date()
+        .toISOString();
+
+    return this.repository
+      .updateOffer(
+        offerId,
+        {
+          status: "approved",
+
+          approved_by:
+            actorId,
+
+          approved_at:
+            approvedAt,
+
+          updated_by:
+            actorId,
+        },
+      );
+  }
+
+  async sendOffer(
+    offerId,
+    {
+      actorId,
+      offeredOn,
+      expiresAt,
+    } = {},
+  ) {
+    requireIdentifier(
+      offerId,
+      "Offer id",
+    );
+
+    requireIdentifier(
+      actorId,
+      "Offer sender id",
+    );
+
+    const offer =
+      await this.repository
+        .getOffer(
+          offerId,
+        );
+
+    if (!offer) {
+      throw new Error(
+        "The admission offer could not be found.",
+      );
+    }
+
+    if (
+      offer.status !==
+      "approved"
+    ) {
+      throw new Error(
+        "Only an approved offer can be sent.",
+      );
+    }
+
+    if (!offer.approved_at) {
+      throw new Error(
+        "The offer approval timestamp is missing.",
+      );
+    }
+
+    const sentAt =
+      new Date()
+        .toISOString();
+
+    let normalizedOfferedOn =
+      offer.offered_on;
+
+    if (
+      offeredOn !==
+      undefined
+    ) {
+      normalizedOfferedOn =
+        normalizeOptionalDate(
+          offeredOn,
+          "Offer date",
+        );
+    }
+
+    if (!normalizedOfferedOn) {
+      normalizedOfferedOn =
+        sentAt.slice(
+          0,
+          10,
+        );
+    }
+
+    let normalizedExpiresAt =
+      offer.expires_at;
+
+    if (
+      expiresAt !==
+      undefined
+    ) {
+      if (
+        expiresAt === null ||
+        expiresAt === ""
+      ) {
+        normalizedExpiresAt =
+          null;
+      } else {
+        const parsedExpiresAt =
+          new Date(
+            expiresAt,
+          );
+
+        if (
+          Number.isNaN(
+            parsedExpiresAt
+              .getTime(),
+          )
+        ) {
+          throw new Error(
+            "Offer expiry date and time is invalid.",
+          );
+        }
+
+        normalizedExpiresAt =
+          parsedExpiresAt
+            .toISOString();
+      }
+    }
+
+    if (
+      normalizedExpiresAt &&
+      new Date(
+        normalizedExpiresAt,
+      ) <= new Date(sentAt)
+    ) {
+      throw new Error(
+        "Offer expiry must be later than the time the offer is sent.",
+      );
+    }
+
+    return this.repository
+      .updateOffer(
+        offerId,
+        {
+          status: "sent",
+
+          offered_on:
+            normalizedOfferedOn,
+
+          expires_at:
+            normalizedExpiresAt,
+
+          sent_by:
+            actorId,
+
+          sent_at:
+            sentAt,
+
+          updated_by:
+            actorId,
+        },
+      );
+  }
+  async recordOfferViewed(
+    offerId,
+  ) {
+    requireIdentifier(
+      offerId,
+      "Offer id",
+    );
+
+    const offer =
+      await this.repository
+        .getOffer(
+          offerId,
+        );
+
+    if (!offer) {
+      throw new Error(
+        "The admission offer could not be found.",
+      );
+    }
+
+    if (
+      ![
+        "sent",
+        "viewed",
+      ].includes(
+        offer.status,
+      )
+    ) {
+      throw new Error(
+        "Only a sent offer can be marked as viewed.",
+      );
+    }
+
+    if (!offer.sent_at) {
+      throw new Error(
+        "The offer sent timestamp is missing.",
+      );
+    }
+
+    if (
+      offer.expires_at &&
+      new Date(
+        offer.expires_at,
+      ) <= new Date()
+    ) {
+      throw new Error(
+        "The admission offer has expired and cannot be marked as viewed.",
+      );
+    }
+
+    if (
+      offer.status === "viewed" &&
+      offer.viewed_at
+    ) {
+      return offer;
+    }
+
+    return this.repository
+      .updateOffer(
+        offerId,
+        {
+          status: "viewed",
+
+          viewed_at:
+            offer.viewed_at ??
+            new Date()
+              .toISOString(),
+        },
+      );
+  }
+
+  async acceptOffer(
+    offerId,
+    {
+      responseNotes,
+      actorId,
+    } = {},
+  ) {
+    requireIdentifier(
+      offerId,
+      "Offer id",
+    );
+
+    const offer =
+      await this.repository
+        .getOffer(
+          offerId,
+        );
+
+    if (!offer) {
+      throw new Error(
+        "The admission offer could not be found.",
+      );
+    }
+
+    if (
+      ![
+        "sent",
+        "viewed",
+      ].includes(
+        offer.status,
+      )
+    ) {
+      throw new Error(
+        "Only a sent or viewed offer can be accepted.",
+      );
+    }
+
+    if (!offer.sent_at) {
+      throw new Error(
+        "The offer sent timestamp is missing.",
+      );
+    }
+
+    const respondedAt =
+      new Date()
+        .toISOString();
+
+    if (
+      offer.expires_at &&
+      new Date(
+        offer.expires_at,
+      ) <= new Date(
+        respondedAt,
+      )
+    ) {
+      throw new Error(
+        "The admission offer has expired and cannot be accepted.",
+      );
+    }
+
+    const updates = {
+      status: "accepted",
+
+      responded_at:
+        respondedAt,
+
+      response_notes:
+        normalizeOptionalText(
+          responseNotes,
+        ),
+    };
+
+    if (actorId) {
+      updates.updated_by =
+        actorId;
+    }
+
+    return this.repository
+      .updateOffer(
+        offerId,
+        updates,
+      );
+  }
+
+  async declineOffer(
+    offerId,
+    {
+      responseNotes,
+      actorId,
+    } = {},
+  ) {
+    requireIdentifier(
+      offerId,
+      "Offer id",
+    );
+
+    const offer =
+      await this.repository
+        .getOffer(
+          offerId,
+        );
+
+    if (!offer) {
+      throw new Error(
+        "The admission offer could not be found.",
+      );
+    }
+
+    if (
+      ![
+        "sent",
+        "viewed",
+      ].includes(
+        offer.status,
+      )
+    ) {
+      throw new Error(
+        "Only a sent or viewed offer can be declined.",
+      );
+    }
+
+    if (!offer.sent_at) {
+      throw new Error(
+        "The offer sent timestamp is missing.",
+      );
+    }
+
+    const updates = {
+      status: "declined",
+
+      responded_at:
+        new Date()
+          .toISOString(),
+
+      response_notes:
+        normalizeOptionalText(
+          responseNotes,
+        ),
+    };
+
+    if (actorId) {
+      updates.updated_by =
+        actorId;
+    }
+
+    return this.repository
+      .updateOffer(
+        offerId,
+        updates,
+      );
+  }
+
+  async withdrawOffer(
+    offerId,
+    {
+      actorId,
+      withdrawalReason,
+    } = {},
+  ) {
+    requireIdentifier(
+      offerId,
+      "Offer id",
+    );
+
+    requireIdentifier(
+      actorId,
+      "Offer withdrawer id",
+    );
+
+    const offer =
+      await this.repository
+        .getOffer(
+          offerId,
+        );
+
+    if (!offer) {
+      throw new Error(
+        "The admission offer could not be found.",
+      );
+    }
+
+    if (
+      ![
+        "draft",
+        "pending_approval",
+        "approved",
+        "sent",
+        "viewed",
+      ].includes(
+        offer.status,
+      )
+    ) {
+      throw new Error(
+        "This admission offer can no longer be withdrawn.",
+      );
+    }
+
+    const normalizedReason =
+      normalizeOptionalText(
+        withdrawalReason,
+      );
+
+    if (!normalizedReason) {
+      throw new Error(
+        "A withdrawal reason is required.",
+      );
+    }
+
+    return this.repository
+      .updateOffer(
+        offerId,
+        {
+          status: "withdrawn",
+
+          withdrawn_at:
+            new Date()
+              .toISOString(),
+
+          withdrawal_reason:
+            normalizedReason,
+
+          updated_by:
+            actorId,
+        },
+      );
+  }
   async getStatusHistory(
     filters = {},
   ) {
