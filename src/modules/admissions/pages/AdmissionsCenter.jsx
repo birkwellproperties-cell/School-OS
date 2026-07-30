@@ -28,6 +28,9 @@ import {
   ConvertInquiryDialog,
   DecisionWorkspace,
   DecisionDialog,
+  OfferWorkspace,
+  OfferDialog,
+  OfferWorkflowDialog,
   DocumentRequirementsManager,
   InquiryDialog,
   InquiryQueue,
@@ -134,6 +137,26 @@ function AdmissionsWorkspace() {
   ] = useState(null);
 
   const [
+    offerDialogMode,
+    setOfferDialogMode,
+  ] = useState(null);
+
+  const [
+    selectedOfferRecord,
+    setSelectedOfferRecord,
+  ] = useState(null);
+
+  const [
+    offerWorkflowAction,
+    setOfferWorkflowAction,
+  ] = useState(null);
+
+  const [
+    workflowOffer,
+    setWorkflowOffer,
+  ] = useState(null);
+
+  const [
     selectedApplicationRecord,
     setSelectedApplicationRecord,
   ] = useState(null);
@@ -159,6 +182,24 @@ function AdmissionsWorkspace() {
     setSelectedDecisionRecord(null);
   };
 
+  const closeOfferDialog = () => {
+    setOfferDialogMode(null);
+    setSelectedOfferRecord(null);
+  };
+
+  const closeOfferWorkflowDialog = () => {
+    setOfferWorkflowAction(null);
+    setWorkflowOffer(null);
+  };
+
+  const openOfferWorkflowDialog = (
+    action,
+    offer,
+  ) => {
+    setWorkflowOffer(offer || null);
+    setOfferWorkflowAction(action);
+  };
+
   const {
     loading,
     error,
@@ -171,6 +212,26 @@ function AdmissionsWorkspace() {
     selectedInquiry,
     selectedApplicant,
     selectApplicant,
+
+    applications,
+    decisions,
+    offers,
+
+    createOffer,
+    updateOffer,
+
+    submitOfferForApproval,
+    approveOffer,
+    sendOffer,
+    recordOfferViewed,
+    acceptOffer,
+    declineOffer,
+    withdrawOffer,
+
+    offerMutationLoading,
+    offerMutationError,
+    clearOfferMutationError,
+
     refreshDashboard,
   } = useAdmissions();
 
@@ -192,6 +253,77 @@ function AdmissionsWorkspace() {
     hasPermission(
       AdmissionsPermission.APPROVE,
     );
+  const confirmOfferWorkflow =
+    async (payload = {}) => {
+      const offerId =
+        workflowOffer?.id;
+
+      if (!offerId) {
+        throw new Error(
+          "Select an admission offer first.",
+        );
+      }
+
+      switch (
+        offerWorkflowAction
+      ) {
+        case "submit_for_approval":
+          await submitOfferForApproval(
+            offerId,
+            payload,
+          );
+          break;
+
+        case "approve":
+          await approveOffer(
+            offerId,
+            payload,
+          );
+          break;
+
+        case "send":
+          await sendOffer(
+            offerId,
+            payload,
+          );
+          break;
+
+        case "record_viewed":
+          await recordOfferViewed(
+            offerId,
+            payload,
+          );
+          break;
+
+        case "accept":
+          await acceptOffer(
+            offerId,
+            payload,
+          );
+          break;
+
+        case "decline":
+          await declineOffer(
+            offerId,
+            payload,
+          );
+          break;
+
+        case "withdraw":
+          await withdrawOffer(
+            offerId,
+            payload,
+          );
+          break;
+
+        default:
+          throw new Error(
+            "The admission offer workflow action is not supported.",
+          );
+      }
+
+      closeOfferWorkflowDialog();
+    };
 
 
   const conversionPercentage =
@@ -460,6 +592,94 @@ function AdmissionsWorkspace() {
         />
       )}
 
+      {offerDialogMode && (
+        <OfferDialog
+          open
+          mode={offerDialogMode}
+          offer={
+            selectedOfferRecord
+          }
+          applications={
+            applications?.items ||
+            applications ||
+            []
+          }
+          decisions={
+            decisions?.items ||
+            decisions ||
+            []
+          }
+          offers={
+            offers?.items ||
+            offers ||
+            []
+          }
+          loading={
+            offerMutationLoading
+          }
+          error={
+            offerMutationError
+          }
+          onClose={
+            closeOfferDialog
+          }
+          onSave={async (
+            payload,
+          ) => {
+            if (
+              offerDialogMode ===
+              "edit"
+            ) {
+              const offerId =
+                selectedOfferRecord
+                  ?.id;
+
+              if (!offerId) {
+                throw new Error(
+                  "The admission offer id is required.",
+                );
+              }
+
+              await updateOffer(
+                offerId,
+                payload,
+              );
+            } else {
+              await createOffer(
+                payload,
+              );
+            }
+
+            closeOfferDialog();
+          }}
+        />
+      )}
+
+      {offerWorkflowAction &&
+        workflowOffer && (
+          <OfferWorkflowDialog
+            open
+            action={
+              offerWorkflowAction
+            }
+            offer={
+              workflowOffer
+            }
+            loading={
+              offerMutationLoading
+            }
+            error={
+              offerMutationError
+            }
+            onClose={
+              closeOfferWorkflowDialog
+            }
+            onConfirm={
+              confirmOfferWorkflow
+            }
+          />
+        )}
+
       <ConvertInquiryDialog
         open={Boolean(
           conversionInquiry,
@@ -582,6 +802,22 @@ function AdmissionsWorkspace() {
           setSelectedDecisionRecord(decision);
           setDecisionDialogMode("edit");
         }}
+      />
+
+      <OfferWorkspace
+        onCreateOffer={() => {
+          clearOfferMutationError?.();
+          setSelectedOfferRecord(null);
+          setOfferDialogMode("create");
+        }}
+        onEditOffer={(offer) => {
+          clearOfferMutationError?.();
+          setSelectedOfferRecord(offer);
+          setOfferDialogMode("edit");
+        }}
+        onOfferWorkflowAction={
+          openOfferWorkflowDialog
+        }
       />
 
       <div className="grid gap-6 xl:grid-cols-2">
