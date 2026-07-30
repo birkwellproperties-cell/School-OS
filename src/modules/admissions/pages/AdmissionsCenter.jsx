@@ -1,4 +1,4 @@
-﻿import {
+import {
   useState,
 } from "react";
 
@@ -26,6 +26,9 @@ import {
   ApplicantQueue,
   ApplicationWorkspace,
   ConvertInquiryDialog,
+  DecisionWorkspace,
+  DecisionDialog,
+  DocumentRequirementsManager,
   InquiryDialog,
   InquiryQueue,
   QuickActionCard,
@@ -77,7 +80,7 @@ function StatusBadge({ status }) {
 }
 
 function formatDate(value) {
-  if (!value) return "—";
+  if (!value) return "�";
 
   return new Intl.DateTimeFormat(
     undefined,
@@ -121,6 +124,16 @@ function AdmissionsWorkspace() {
   ] = useState(null);
 
   const [
+    decisionDialogMode,
+    setDecisionDialogMode,
+  ] = useState(null);
+
+  const [
+    selectedDecisionRecord,
+    setSelectedDecisionRecord,
+  ] = useState(null);
+
+  const [
     selectedApplicationRecord,
     setSelectedApplicationRecord,
   ] = useState(null);
@@ -141,6 +154,11 @@ function AdmissionsWorkspace() {
     setSelectedApplicationRecord(null);
   };
 
+  const closeDecisionDialog = () => {
+    setDecisionDialogMode(null);
+    setSelectedDecisionRecord(null);
+  };
+
   const {
     loading,
     error,
@@ -152,6 +170,7 @@ function AdmissionsWorkspace() {
     selectedAdmissionCycle,
     selectedInquiry,
     selectedApplicant,
+    selectApplicant,
     refreshDashboard,
   } = useAdmissions();
 
@@ -173,6 +192,7 @@ function AdmissionsWorkspace() {
     hasPermission(
       AdmissionsPermission.APPROVE,
     );
+
 
   const conversionPercentage =
     `${Math.round(
@@ -356,6 +376,8 @@ function AdmissionsWorkspace() {
         )}
       </header>
 
+      <DocumentRequirementsManager />
+
       <AdmissionCycleDialog
         open={Boolean(cycleDialogMode)}
         mode={
@@ -424,6 +446,19 @@ function AdmissionsWorkspace() {
           closeApplicationDialog();
         }}
       />
+      {decisionDialogMode && (
+        <DecisionDialog
+          open
+          mode={decisionDialogMode}
+          decision={
+            selectedDecisionRecord
+          }
+          onClose={
+            closeDecisionDialog
+          }
+          onSaved={() => {}}
+        />
+      )}
 
       <ConvertInquiryDialog
         open={Boolean(
@@ -433,9 +468,18 @@ function AdmissionsWorkspace() {
         onClose={() =>
           setConversionInquiry(null)
         }
-        onConverted={() =>
-          setConversionInquiry(null)
-        }
+        onConverted={(result) => {
+          const applicant =
+            result?.applicant ||
+            result;
+
+          setConversionInquiry(null);
+
+          if (applicant?.id) {
+            selectApplicant(applicant);
+            setApplicantDialogMode("edit");
+          }
+        }}
       />
 
       {error && (
@@ -526,6 +570,17 @@ function AdmissionsWorkspace() {
         onEditApplication={(application) => {
           setSelectedApplicationRecord(application);
           setApplicationDialogMode("edit");
+        }}
+      />
+
+      <DecisionWorkspace
+        onCreateDecision={() => {
+          setSelectedDecisionRecord(null);
+          setDecisionDialogMode("create");
+        }}
+        onEditDecision={(decision) => {
+          setSelectedDecisionRecord(decision);
+          setDecisionDialogMode("edit");
         }}
       />
 
@@ -666,3 +721,5 @@ export default function AdmissionsCenter() {
     </AdmissionsProvider>
   );
 }
+
+

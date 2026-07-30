@@ -161,6 +161,7 @@ function validateForm({
 
 export default function DocumentUploaderDialog({
   open,
+  requirement = null,
   onClose,
 }) {
   const fileInputRef =
@@ -243,6 +244,18 @@ export default function DocumentUploaderDialog({
 
     setForm({
       ...INITIAL_FORM,
+
+      document_type:
+        requirement?.document_type ??
+        "",
+
+      document_label:
+        requirement?.document_label ??
+        "",
+
+      requirement_status:
+        requirement?.requirement_status ??
+        "required",
     });
 
     setSelectedFile(null);
@@ -254,6 +267,7 @@ export default function DocumentUploaderDialog({
     resetUploadProgress?.();
   }, [
     open,
+    requirement,
     clearDocumentMutationError,
     resetUploadProgress,
   ]);
@@ -491,6 +505,10 @@ export default function DocumentUploaderDialog({
         await uploadApplicationDocument({
           file: selectedFile,
 
+          requirementId:
+            requirement?.id ??
+            null,
+
           documentType:
             form.document_type,
 
@@ -685,7 +703,7 @@ export default function DocumentUploaderDialog({
                       {formatFileSize(
                         selectedFile.size,
                       )}
-                      {" · "}
+                      {" Ã‚Â· "}
                       {selectedFile.type ||
                         "Unknown file type"}
                     </p>

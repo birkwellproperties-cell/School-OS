@@ -1,4 +1,4 @@
-﻿begin;
+begin;
 
 grant update (
   maximum_score,

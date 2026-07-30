@@ -1950,6 +1950,995 @@ async function deleteAssessmentTemplateQuestion(
 }
 
 // ============================================================
+// ASSESSMENT RUNTIME - ASSIGNMENTS
+// ============================================================
+
+const ASSESSMENT_ASSIGNMENT_SELECT = `
+  *,
+  template:assessment_templates!assessment_assignments_template_id_fkey(
+    id,
+    template_number,
+    name,
+    status
+  )
+`;
+async function getAssessmentAssignments(
+  filters = {},
+) {
+  return getPagedRecords({
+    table:
+      AssessmentTable.ASSIGNMENTS,
+
+    
+    select:
+      ASSESSMENT_ASSIGNMENT_SELECT,
+filters,
+
+    searchColumns:
+      [
+        "assignment_number",
+        "title",
+        "description",
+        "instructions",
+        "source_type",
+      ],
+
+    allowedSortColumns:
+      [
+        "assignment_number",
+        "title",
+        "status",
+        "opens_at",
+        "due_at",
+        "closes_at",
+        "published_at",
+        "created_at",
+        "updated_at",
+      ],
+
+    supportedFilters:
+      {
+        organizationId: true,
+        schoolId: true,
+        campusId: true,
+        templateId: true,
+        deliveryMode: true,
+        status: true,
+        statuses: true,
+      },
+
+    configureQuery:
+      (
+        query,
+        currentFilters,
+      ) => {
+        let nextQuery =
+          query;
+
+        nextQuery =
+          applyExactFilter(
+            nextQuery,
+            "source_type",
+            currentFilters.sourceType,
+          );
+
+        nextQuery =
+          applyExactFilter(
+            nextQuery,
+            "source_id",
+            currentFilters.sourceId,
+          );
+
+        return nextQuery;
+      },
+
+    operation:
+      "load assessment assignments",
+
+    fallbackMessage:
+      "Unable to load assessment assignments.",
+  });
+}
+
+async function getAssessmentAssignment(
+  id,
+) {
+  return getSingleRecord({
+    table:
+      AssessmentTable.ASSIGNMENTS,
+
+    
+    select:
+      ASSESSMENT_ASSIGNMENT_SELECT,
+id,
+
+    operation:
+      "load assessment assignment",
+
+    fallbackMessage:
+      "Unable to load the assessment assignment.",
+  });
+}
+
+async function createAssessmentAssignment(
+  payload,
+) {
+  return createRecord({
+    table:
+      AssessmentTable.ASSIGNMENTS,
+
+    payload,
+
+    operation:
+      "create assessment assignment",
+
+    fallbackMessage:
+      "Unable to create the assessment assignment.",
+  });
+}
+
+async function updateAssessmentAssignment(
+  id,
+  updates,
+) {
+  return updateRecord({
+    table:
+      AssessmentTable.ASSIGNMENTS,
+
+    id,
+    updates,
+
+    operation:
+      "update assessment assignment",
+
+    fallbackMessage:
+      "Unable to update the assessment assignment.",
+  });
+}
+
+async function deleteAssessmentAssignment(
+  id,
+  deletedBy = null,
+) {
+  return softDeleteRecord({
+    table:
+      AssessmentTable.ASSIGNMENTS,
+
+    id,
+    deletedBy,
+
+    operation:
+      "delete assessment assignment",
+
+    fallbackMessage:
+      "Unable to delete the assessment assignment.",
+  });
+}
+
+// ============================================================
+// ASSESSMENT RUNTIME - ASSIGNMENT RECIPIENTS
+// ============================================================
+
+async function getAssessmentAssignmentRecipients(
+  filters = {},
+) {
+  return getPagedRecords({
+    table:
+      AssessmentTable.ASSIGNMENT_RECIPIENTS,
+
+    filters,
+
+    searchColumns:
+      [
+        "audience_type",
+        "source_type",
+        "cancellation_reason",
+      ],
+
+    allowedSortColumns:
+      [
+        "status",
+        "assigned_at",
+        "available_from",
+        "due_at",
+        "expires_at",
+        "completed_at",
+        "created_at",
+        "updated_at",
+      ],
+
+    supportedFilters:
+      {
+        organizationId: true,
+        schoolId: true,
+        campusId: true,
+        audienceType: true,
+        status: true,
+        statuses: true,
+      },
+
+    configureQuery:
+      (
+        query,
+        currentFilters,
+      ) => {
+        let nextQuery =
+          query;
+
+        nextQuery =
+          applyExactFilter(
+            nextQuery,
+            "assignment_id",
+            currentFilters.assignmentId,
+          );
+
+        nextQuery =
+          applyExactFilter(
+            nextQuery,
+            "audience_id",
+            currentFilters.audienceId,
+          );
+
+        nextQuery =
+          applyExactFilter(
+            nextQuery,
+            "recipient_profile_id",
+            currentFilters.recipientProfileId,
+          );
+
+        nextQuery =
+          applyExactFilter(
+            nextQuery,
+            "source_type",
+            currentFilters.sourceType,
+          );
+
+        nextQuery =
+          applyExactFilter(
+            nextQuery,
+            "source_id",
+            currentFilters.sourceId,
+          );
+
+        return nextQuery;
+      },
+
+    operation:
+      "load assessment assignment recipients",
+
+    fallbackMessage:
+      "Unable to load assessment assignment recipients.",
+  });
+}
+
+async function getAssessmentAssignmentRecipient(
+  id,
+) {
+  return getSingleRecord({
+    table:
+      AssessmentTable.ASSIGNMENT_RECIPIENTS,
+
+    id,
+
+    operation:
+      "load assessment assignment recipient",
+
+    fallbackMessage:
+      "Unable to load the assessment assignment recipient.",
+  });
+}
+
+async function createAssessmentAssignmentRecipient(
+  payload,
+) {
+  return createRecord({
+    table:
+      AssessmentTable.ASSIGNMENT_RECIPIENTS,
+
+    payload,
+
+    operation:
+      "create assessment assignment recipient",
+
+    fallbackMessage:
+      "Unable to create the assessment assignment recipient.",
+  });
+}
+
+async function updateAssessmentAssignmentRecipient(
+  id,
+  updates,
+) {
+  return updateRecord({
+    table:
+      AssessmentTable.ASSIGNMENT_RECIPIENTS,
+
+    id,
+    updates,
+
+    operation:
+      "update assessment assignment recipient",
+
+    fallbackMessage:
+      "Unable to update the assessment assignment recipient.",
+  });
+}
+
+async function deleteAssessmentAssignmentRecipient(
+  id,
+  deletedBy = null,
+) {
+  return softDeleteRecord({
+    table:
+      AssessmentTable.ASSIGNMENT_RECIPIENTS,
+
+    id,
+    deletedBy,
+
+    operation:
+      "delete assessment assignment recipient",
+
+    fallbackMessage:
+      "Unable to delete the assessment assignment recipient.",
+  });
+}
+
+// ============================================================
+// ASSESSMENT RUNTIME - ATTEMPTS
+// ============================================================
+
+async function getAssessmentAttempts(
+  filters = {},
+) {
+  return getPagedRecords({
+    table:
+      AssessmentTable.ATTEMPTS,
+
+    filters,
+
+    searchColumns:
+      [],
+
+    allowedSortColumns:
+      [
+        "attempt_number",
+        "status",
+        "grading_status",
+        "started_at",
+        "submitted_at",
+        "completed_at",
+        "percentage_score",
+        "created_at",
+        "updated_at",
+      ],
+
+    supportedFilters:
+      {
+        organizationId: true,
+        schoolId: true,
+        campusId: true,
+        templateId: true,
+        status: true,
+        statuses: true,
+      },
+
+    configureQuery:
+      (
+        query,
+        currentFilters,
+      ) => {
+        let nextQuery =
+          query;
+
+        nextQuery =
+          applyExactFilter(
+            nextQuery,
+            "assignment_id",
+            currentFilters.assignmentId,
+          );
+
+        nextQuery =
+          applyExactFilter(
+            nextQuery,
+            "recipient_id",
+            currentFilters.recipientId,
+          );
+
+        nextQuery =
+          applyExactFilter(
+            nextQuery,
+            "grading_status",
+            currentFilters.gradingStatus,
+          );
+
+        return nextQuery;
+      },
+
+    operation:
+      "load assessment attempts",
+
+    fallbackMessage:
+      "Unable to load assessment attempts.",
+  });
+}
+
+async function getAssessmentAttempt(
+  id,
+) {
+  return getSingleRecord({
+    table:
+      AssessmentTable.ATTEMPTS,
+
+    id,
+
+    operation:
+      "load assessment attempt",
+
+    fallbackMessage:
+      "Unable to load the assessment attempt.",
+  });
+}
+
+async function createAssessmentAttempt(
+  payload,
+) {
+  return createRecord({
+    table:
+      AssessmentTable.ATTEMPTS,
+
+    payload,
+
+    operation:
+      "create assessment attempt",
+
+    fallbackMessage:
+      "Unable to create the assessment attempt.",
+  });
+}
+
+async function updateAssessmentAttempt(
+  id,
+  updates,
+) {
+  return updateRecord({
+    table:
+      AssessmentTable.ATTEMPTS,
+
+    id,
+    updates,
+
+    operation:
+      "update assessment attempt",
+
+    fallbackMessage:
+      "Unable to update the assessment attempt.",
+  });
+}
+
+async function deleteAssessmentAttempt(
+  id,
+  deletedBy = null,
+) {
+  return softDeleteRecord({
+    table:
+      AssessmentTable.ATTEMPTS,
+
+    id,
+    deletedBy,
+
+    operation:
+      "delete assessment attempt",
+
+    fallbackMessage:
+      "Unable to delete the assessment attempt.",
+  });
+}
+
+// ============================================================
+// ASSESSMENT RUNTIME - ATTEMPT QUESTIONS
+// ============================================================
+
+async function getAssessmentAttemptQuestions(
+  filters = {},
+) {
+  return getPagedRecords({
+    table:
+      AssessmentTable.ATTEMPT_QUESTIONS,
+
+    filters,
+
+    searchColumns:
+      [
+        "question_number",
+        "question_type",
+      ],
+
+    allowedSortColumns:
+      [
+        "display_order",
+        "question_number",
+        "question_type",
+        "maximum_marks",
+        "created_at",
+        "updated_at",
+      ],
+
+    supportedFilters:
+      {
+        organizationId: true,
+        schoolId: true,
+        templateId: true,
+        sectionId: true,
+        questionId: true,
+        questionType: true,
+      },
+
+    configureQuery:
+      (
+        query,
+        currentFilters,
+      ) => {
+        let nextQuery =
+          query;
+
+        nextQuery =
+          applyExactFilter(
+            nextQuery,
+            "attempt_id",
+            currentFilters.attemptId,
+          );
+
+        nextQuery =
+          applyExactFilter(
+            nextQuery,
+            "assignment_id",
+            currentFilters.assignmentId,
+          );
+
+        nextQuery =
+          applyExactFilter(
+            nextQuery,
+            "template_question_id",
+            currentFilters.templateQuestionId,
+          );
+
+        return nextQuery;
+      },
+
+    operation:
+      "load assessment attempt questions",
+
+    fallbackMessage:
+      "Unable to load assessment attempt questions.",
+  });
+}
+
+async function getAssessmentAttemptQuestion(
+  id,
+) {
+  return getSingleRecord({
+    table:
+      AssessmentTable.ATTEMPT_QUESTIONS,
+
+    id,
+
+    operation:
+      "load assessment attempt question",
+
+    fallbackMessage:
+      "Unable to load the assessment attempt question.",
+  });
+}
+
+async function createAssessmentAttemptQuestion(
+  payload,
+) {
+  return createRecord({
+    table:
+      AssessmentTable.ATTEMPT_QUESTIONS,
+
+    payload,
+
+    operation:
+      "create assessment attempt question",
+
+    fallbackMessage:
+      "Unable to create the assessment attempt question.",
+  });
+}
+
+async function updateAssessmentAttemptQuestion(
+  id,
+  updates,
+) {
+  return updateRecord({
+    table:
+      AssessmentTable.ATTEMPT_QUESTIONS,
+
+    id,
+    updates,
+
+    operation:
+      "update assessment attempt question",
+
+    fallbackMessage:
+      "Unable to update the assessment attempt question.",
+  });
+}
+
+async function deleteAssessmentAttemptQuestion(
+  id,
+  deletedBy = null,
+) {
+  return softDeleteRecord({
+    table:
+      AssessmentTable.ATTEMPT_QUESTIONS,
+
+    id,
+    deletedBy,
+
+    operation:
+      "delete assessment attempt question",
+
+    fallbackMessage:
+      "Unable to delete the assessment attempt question.",
+  });
+}
+
+// ============================================================
+// ASSESSMENT RUNTIME - RESPONSES
+// ============================================================
+
+async function getAssessmentResponses(
+  filters = {},
+) {
+  return getPagedRecords({
+    table:
+      AssessmentTable.RESPONSES,
+
+    filters,
+
+    searchColumns:
+      [
+        "response_text",
+        "status",
+        "grader_feedback",
+      ],
+
+    allowedSortColumns:
+      [
+        "status",
+        "answered_at",
+        "time_spent_seconds",
+        "marks_awarded",
+        "graded_at",
+        "created_at",
+        "updated_at",
+      ],
+
+    supportedFilters:
+      {
+        organizationId: true,
+        schoolId: true,
+        campusId: true,
+        questionId: true,
+        status: true,
+        statuses: true,
+      },
+
+    configureQuery:
+      (
+        query,
+        currentFilters,
+      ) => {
+        let nextQuery =
+          query;
+
+        nextQuery =
+          applyExactFilter(
+            nextQuery,
+            "assignment_id",
+            currentFilters.assignmentId,
+          );
+
+        nextQuery =
+          applyExactFilter(
+            nextQuery,
+            "attempt_id",
+            currentFilters.attemptId,
+          );
+
+        nextQuery =
+          applyExactFilter(
+            nextQuery,
+            "attempt_question_id",
+            currentFilters.attemptQuestionId,
+          );
+
+        if (
+          currentFilters.manualReviewRequired !==
+            undefined &&
+          currentFilters.manualReviewRequired !==
+            null
+        ) {
+          nextQuery =
+            nextQuery.eq(
+              "manual_review_required",
+              Boolean(
+                currentFilters.manualReviewRequired,
+              ),
+            );
+        }
+
+        if (
+          currentFilters.flaggedForReview !==
+            undefined &&
+          currentFilters.flaggedForReview !==
+            null
+        ) {
+          nextQuery =
+            nextQuery.eq(
+              "flagged_for_review",
+              Boolean(
+                currentFilters.flaggedForReview,
+              ),
+            );
+        }
+
+        return nextQuery;
+      },
+
+    operation:
+      "load assessment responses",
+
+    fallbackMessage:
+      "Unable to load assessment responses.",
+  });
+}
+
+async function getAssessmentResponse(
+  id,
+) {
+  return getSingleRecord({
+    table:
+      AssessmentTable.RESPONSES,
+
+    id,
+
+    operation:
+      "load assessment response",
+
+    fallbackMessage:
+      "Unable to load the assessment response.",
+  });
+}
+
+async function createAssessmentResponse(
+  payload,
+) {
+  return createRecord({
+    table:
+      AssessmentTable.RESPONSES,
+
+    payload,
+
+    operation:
+      "create assessment response",
+
+    fallbackMessage:
+      "Unable to create the assessment response.",
+  });
+}
+
+async function updateAssessmentResponse(
+  id,
+  updates,
+) {
+  return updateRecord({
+    table:
+      AssessmentTable.RESPONSES,
+
+    id,
+    updates,
+
+    operation:
+      "update assessment response",
+
+    fallbackMessage:
+      "Unable to update the assessment response.",
+  });
+}
+
+async function deleteAssessmentResponse(
+  id,
+  deletedBy = null,
+) {
+  return softDeleteRecord({
+    table:
+      AssessmentTable.RESPONSES,
+
+    id,
+    deletedBy,
+
+    operation:
+      "delete assessment response",
+
+    fallbackMessage:
+      "Unable to delete the assessment response.",
+  });
+}
+
+// ============================================================
+// ASSESSMENT RUNTIME - RESULTS
+// ============================================================
+
+async function getAssessmentResults(
+  filters = {},
+) {
+  return getPagedRecords({
+    table:
+      AssessmentTable.RESULTS,
+
+    filters,
+
+    searchColumns:
+      [
+        "grade_label",
+        "grade_value",
+        "recommendation",
+        "reviewer_notes",
+      ],
+
+    allowedSortColumns:
+      [
+        "status",
+        "raw_score",
+        "percentage_score",
+        "calculated_at",
+        "finalized_at",
+        "released_at",
+        "created_at",
+        "updated_at",
+      ],
+
+    supportedFilters:
+      {
+        organizationId: true,
+        schoolId: true,
+        campusId: true,
+        templateId: true,
+        status: true,
+        statuses: true,
+      },
+
+    configureQuery:
+      (
+        query,
+        currentFilters,
+      ) => {
+        let nextQuery =
+          query;
+
+        nextQuery =
+          applyExactFilter(
+            nextQuery,
+            "assignment_id",
+            currentFilters.assignmentId,
+          );
+
+        nextQuery =
+          applyExactFilter(
+            nextQuery,
+            "recipient_id",
+            currentFilters.recipientId,
+          );
+
+        nextQuery =
+          applyExactFilter(
+            nextQuery,
+            "attempt_id",
+            currentFilters.attemptId,
+          );
+
+        if (
+          currentFilters.passed !==
+            undefined &&
+          currentFilters.passed !==
+            null
+        ) {
+          nextQuery =
+            nextQuery.eq(
+              "passed",
+              Boolean(
+                currentFilters.passed,
+              ),
+            );
+        }
+
+        return nextQuery;
+      },
+
+    operation:
+      "load assessment results",
+
+    fallbackMessage:
+      "Unable to load assessment results.",
+  });
+}
+
+async function getAssessmentResult(
+  id,
+) {
+  return getSingleRecord({
+    table:
+      AssessmentTable.RESULTS,
+
+    id,
+
+    operation:
+      "load assessment result",
+
+    fallbackMessage:
+      "Unable to load the assessment result.",
+  });
+}
+
+async function createAssessmentResult(
+  payload,
+) {
+  return createRecord({
+    table:
+      AssessmentTable.RESULTS,
+
+    payload,
+
+    operation:
+      "create assessment result",
+
+    fallbackMessage:
+      "Unable to create the assessment result.",
+  });
+}
+
+async function updateAssessmentResult(
+  id,
+  updates,
+) {
+  return updateRecord({
+    table:
+      AssessmentTable.RESULTS,
+
+    id,
+    updates,
+
+    operation:
+      "update assessment result",
+
+    fallbackMessage:
+      "Unable to update the assessment result.",
+  });
+}
+
+async function deleteAssessmentResult(
+  id,
+  deletedBy = null,
+) {
+  return softDeleteRecord({
+    table:
+      AssessmentTable.RESULTS,
+
+    id,
+    deletedBy,
+
+    operation:
+      "delete assessment result",
+
+    fallbackMessage:
+      "Unable to delete the assessment result.",
+  });
+}
+
+// ============================================================
 // TEMPLATE LIFECYCLE RPCS
 // ============================================================
 
@@ -2091,12 +3080,46 @@ export const assessmentRepository =
     updateAssessmentTemplateQuestion,
     deleteAssessmentTemplateQuestion,
 
+    getAssessmentAssignments,
+    getAssessmentAssignment,
+    createAssessmentAssignment,
+    updateAssessmentAssignment,
+    deleteAssessmentAssignment,
+    getAssessmentAssignmentRecipients,
+    getAssessmentAssignmentRecipient,
+    createAssessmentAssignmentRecipient,
+    updateAssessmentAssignmentRecipient,
+    deleteAssessmentAssignmentRecipient,
+    getAssessmentAttempts,
+    getAssessmentAttempt,
+    createAssessmentAttempt,
+    updateAssessmentAttempt,
+    deleteAssessmentAttempt,
+    getAssessmentAttemptQuestions,
+    getAssessmentAttemptQuestion,
+    createAssessmentAttemptQuestion,
+    updateAssessmentAttemptQuestion,
+    deleteAssessmentAttemptQuestion,
+    getAssessmentResponses,
+    getAssessmentResponse,
+    createAssessmentResponse,
+    updateAssessmentResponse,
+    deleteAssessmentResponse,
+    getAssessmentResults,
+    getAssessmentResult,
+    createAssessmentResult,
+    updateAssessmentResult,
+    deleteAssessmentResult,
+
     publishAssessmentTemplate,
     pauseAssessmentTemplate,
     retireAssessmentTemplate,
   });
 
 export default assessmentRepository;
+
+
+
 
 
 

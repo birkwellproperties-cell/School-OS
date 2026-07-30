@@ -1,4 +1,4 @@
-﻿begin;
+begin;
 
 -- ============================================================
 -- Assessment Center column privilege alignment

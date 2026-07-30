@@ -1,4 +1,4 @@
-﻿create or replace function private.validate_assessment_template_question()
+create or replace function private.validate_assessment_template_question()
 returns trigger
 language plpgsql
 security definer

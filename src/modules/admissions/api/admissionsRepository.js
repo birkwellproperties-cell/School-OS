@@ -73,47 +73,7 @@ async function getPagedRecords({
   select = DEFAULT_SELECT,
   filters = {},
   searchColumns = [],
-  allowedSortColumns = [
-    "created_at",
-    "updated_at",
-  ],
 
-  supportedFilters = {
-    organizationId: true,
-    schoolId: true,
-    campusId: true,
-    admissionCycleId: true,
-    applicantId: true,
-    applicationId: true,
-    assignedTo: true,
-    assignedReviewerId: true,
-    leadInterviewerId: true,
-    decisionId: true,
-    offerId: true,
-    priority: true,
-    status: true,
-    statuses: true,
-  },
-
-  configureQuery,
-  operation,
-  fallbackMessage,
-}) {
-  const pagination =
-    normalizePagination(filters);
-
-  let query = supabase
-    .from(table)
-    .select(select, {
-      count: "exact",
-    })
-    .is("deleted_at", null);
-
-  async function getPagedRecords({
-  table,
-  select = DEFAULT_SELECT,
-  filters = {},
-  searchColumns = [],
   allowedSortColumns = [
     "created_at",
     "updated_at",
@@ -139,17 +99,23 @@ async function getPagedRecords({
   includeDeletedFilter = true,
 
   configureQuery,
+
   operation,
   fallbackMessage,
 }) {
   const pagination =
-    normalizePagination(filters);
+    normalizePagination(
+      filters,
+    );
 
   let query = supabase
     .from(table)
-    .select(select, {
-      count: "exact",
-    });
+    .select(
+      select,
+      {
+        count: "exact",
+      },
+    );
 
   if (includeDeletedFilter) {
     query = query.is(
@@ -158,7 +124,9 @@ async function getPagedRecords({
     );
   }
 
-  if (supportedFilters.organizationId) {
+  if (
+    supportedFilters.organizationId
+  ) {
     query = applyExactFilter(
       query,
       "organization_id",
@@ -166,7 +134,9 @@ async function getPagedRecords({
     );
   }
 
-  if (supportedFilters.schoolId) {
+  if (
+    supportedFilters.schoolId
+  ) {
     query = applyExactFilter(
       query,
       "school_id",
@@ -174,7 +144,9 @@ async function getPagedRecords({
     );
   }
 
-  if (supportedFilters.campusId) {
+  if (
+    supportedFilters.campusId
+  ) {
     query = applyExactFilter(
       query,
       "campus_id",
@@ -182,7 +154,9 @@ async function getPagedRecords({
     );
   }
 
-  if (supportedFilters.admissionCycleId) {
+  if (
+    supportedFilters.admissionCycleId
+  ) {
     query = applyExactFilter(
       query,
       "admission_cycle_id",
@@ -190,7 +164,9 @@ async function getPagedRecords({
     );
   }
 
-  if (supportedFilters.applicantId) {
+  if (
+    supportedFilters.applicantId
+  ) {
     query = applyExactFilter(
       query,
       "applicant_id",
@@ -198,7 +174,9 @@ async function getPagedRecords({
     );
   }
 
-  if (supportedFilters.applicationId) {
+  if (
+    supportedFilters.applicationId
+  ) {
     query = applyExactFilter(
       query,
       "application_id",
@@ -206,7 +184,9 @@ async function getPagedRecords({
     );
   }
 
-  if (supportedFilters.assignedTo) {
+  if (
+    supportedFilters.assignedTo
+  ) {
     query = applyExactFilter(
       query,
       "assigned_to",
@@ -214,7 +194,10 @@ async function getPagedRecords({
     );
   }
 
-  if (supportedFilters.assignedReviewerId) {
+  if (
+    supportedFilters
+      .assignedReviewerId
+  ) {
     query = applyExactFilter(
       query,
       "assigned_reviewer_id",
@@ -222,7 +205,10 @@ async function getPagedRecords({
     );
   }
 
-  if (supportedFilters.leadInterviewerId) {
+  if (
+    supportedFilters
+      .leadInterviewerId
+  ) {
     query = applyExactFilter(
       query,
       "lead_interviewer_id",
@@ -230,7 +216,9 @@ async function getPagedRecords({
     );
   }
 
-  if (supportedFilters.decisionId) {
+  if (
+    supportedFilters.decisionId
+  ) {
     query = applyExactFilter(
       query,
       "decision_id",
@@ -238,7 +226,9 @@ async function getPagedRecords({
     );
   }
 
-  if (supportedFilters.offerId) {
+  if (
+    supportedFilters.offerId
+  ) {
     query = applyExactFilter(
       query,
       "offer_id",
@@ -246,7 +236,9 @@ async function getPagedRecords({
     );
   }
 
-  if (supportedFilters.priority) {
+  if (
+    supportedFilters.priority
+  ) {
     query = applyExactFilter(
       query,
       "priority",
@@ -254,7 +246,9 @@ async function getPagedRecords({
     );
   }
 
-  if (supportedFilters.status) {
+  if (
+    supportedFilters.status
+  ) {
     query = applyExactFilter(
       query,
       "status",
@@ -262,7 +256,9 @@ async function getPagedRecords({
     );
   }
 
-  if (supportedFilters.statuses) {
+  if (
+    supportedFilters.statuses
+  ) {
     query = applyArrayFilter(
       query,
       "status",
@@ -281,8 +277,11 @@ async function getPagedRecords({
     filters.dateColumn ||
       "created_at",
     {
-      from: filters.dateFrom,
-      to: filters.dateTo,
+      from:
+        filters.dateFrom,
+
+      to:
+        filters.dateTo,
     },
   );
 
@@ -290,60 +289,6 @@ async function getPagedRecords({
     typeof configureQuery ===
     "function"
   ) {
-    query = configureQuery(
-      query,
-      filters,
-    );
-  }
-
-  query = applyOrdering(
-    query,
-    filters,
-    allowedSortColumns,
-  );
-
-  query = applyPagination(
-    query,
-    pagination,
-  );
-
-  const {
-    data,
-    error,
-    count,
-  } = await query;
-
-  if (error) {
-    throwRepositoryError({
-      error,
-      operation,
-      table,
-      fallbackMessage,
-    });
-  }
-
-  return createPagedResult({
-    data,
-    count,
-    pagination,
-  });
-}
-  query = applySearch(
-    query,
-    filters.search,
-    searchColumns,
-  );
-
-  query = applyDateRange(
-    query,
-    filters.dateColumn || "created_at",
-    {
-      from: filters.dateFrom,
-      to: filters.dateTo,
-    },
-  );
-
-  if (typeof configureQuery === "function") {
     query = configureQuery(
       query,
       filters,
@@ -545,6 +490,60 @@ export async function getInquiry(id) {
     fallbackMessage:
       "Unable to load the admission inquiry.",
   });
+}
+
+export async function getProfilesByIds(
+  ids = [],
+) {
+  const normalizedIds = [
+    ...new Set(
+      (
+        Array.isArray(ids)
+          ? ids
+          : []
+      )
+        .map((id) =>
+          String(id || "").trim(),
+        )
+        .filter(Boolean),
+    ),
+  ];
+
+  if (!normalizedIds.length) {
+    return [];
+  }
+
+  const {
+    data,
+    error,
+  } = await supabase
+    .from("profiles")
+    .select(
+      [
+        "id",
+        "full_name",
+        "preferred_name",
+        "email",
+        "avatar_url",
+        "account_status",
+      ].join(", "),
+    )
+    .in("id", normalizedIds);
+
+  if (error) {
+    throwRepositoryError({
+      error,
+      operation:
+        "getProfilesByIds",
+      table: "profiles",
+      fallbackMessage:
+        "Unable to load reviewer profiles.",
+    });
+  }
+
+  return Array.isArray(data)
+    ? data
+    : [];
 }
 
 export async function getApplicants(
@@ -814,6 +813,192 @@ export async function getApplication(id) {
   });
 }
 
+export async function getAdmissionDocumentRequirements(
+  filters = {},
+) {
+  return getPagedRecords({
+    table:
+      AdmissionsTable.DOCUMENT_REQUIREMENTS,
+
+    filters,
+
+    supportedFilters: {
+      organizationId: true,
+      schoolId: true,
+      campusId: true,
+      admissionCycleId: true,
+
+      applicantId: false,
+      applicationId: false,
+
+      assignedTo: false,
+      assignedReviewerId: false,
+      leadInterviewerId: false,
+      decisionId: false,
+      offerId: false,
+      priority: false,
+
+      status: false,
+      statuses: false,
+    },
+
+    searchColumns: [
+      "document_type",
+      "document_label",
+      "instructions",
+    ],
+
+    allowedSortColumns: [
+      "created_at",
+      "updated_at",
+      "document_type",
+      "document_label",
+      "requirement_status",
+      "display_order",
+      "review_required",
+      "is_active",
+      "archived_at",
+    ],
+
+    configureQuery: (
+      query,
+      currentFilters,
+    ) => {
+      let nextQuery = query;
+
+      nextQuery = applyExactFilter(
+        nextQuery,
+        "requirement_status",
+        currentFilters.requirementStatus,
+      );
+
+      nextQuery = applyExactFilter(
+        nextQuery,
+        "is_active",
+        currentFilters.isActive,
+      );
+
+      return nextQuery;
+    },
+
+    operation:
+      "getAdmissionDocumentRequirements",
+
+    fallbackMessage:
+      "Unable to load admission document requirements.",
+  });
+}
+
+export async function getAdmissionDocumentRequirement(
+  id,
+) {
+  return getSingleRecord({
+    table:
+      AdmissionsTable.DOCUMENT_REQUIREMENTS,
+
+    id,
+
+    operation:
+      "getAdmissionDocumentRequirement",
+
+    fallbackMessage:
+      "Unable to load the admission document requirement.",
+  });
+}
+
+export async function createAdmissionDocumentRequirement(
+  payload,
+) {
+  const {
+    data,
+    error,
+  } = await supabase
+    .from(
+      AdmissionsTable.DOCUMENT_REQUIREMENTS,
+    )
+    .insert(payload)
+    .select()
+    .single();
+
+  if (error) {
+    throwRepositoryError({
+      error,
+
+      operation:
+        "createAdmissionDocumentRequirement",
+
+      table:
+        AdmissionsTable.DOCUMENT_REQUIREMENTS,
+
+      fallbackMessage:
+        "Unable to create the admission document requirement.",
+    });
+  }
+
+  return data;
+}
+
+export async function updateAdmissionDocumentRequirement(
+  id,
+  updates,
+) {
+  const {
+    data,
+    error,
+  } = await supabase
+    .from(
+      AdmissionsTable.DOCUMENT_REQUIREMENTS,
+    )
+    .update(updates)
+    .eq("id", id)
+    .is("deleted_at", null)
+    .select()
+    .single();
+
+  if (error) {
+    throwRepositoryError({
+      error,
+
+      operation:
+        "updateAdmissionDocumentRequirement",
+
+      table:
+        AdmissionsTable.DOCUMENT_REQUIREMENTS,
+
+      fallbackMessage:
+        "Unable to update the admission document requirement.",
+    });
+  }
+
+  return data;
+}
+
+export async function archiveAdmissionDocumentRequirement(
+  id,
+) {
+  return updateAdmissionDocumentRequirement(
+    id,
+    {
+      is_active: false,
+      archived_at:
+        new Date().toISOString(),
+    },
+  );
+}
+
+export async function deleteAdmissionDocumentRequirement(
+  id,
+) {
+  return updateAdmissionDocumentRequirement(
+    id,
+    {
+      is_active: false,
+      deleted_at:
+        new Date().toISOString(),
+    },
+  );
+}
+
 export async function getApplicationDocuments(
   filters = {},
 ) {
@@ -850,19 +1035,30 @@ export async function getApplicationDocuments(
       "notes",
     ],
 
-    allowedSortColumns: [
-      "created_at",
-      "updated_at",
-      "document_type",
-      "document_label",
-      "status",
-      "uploaded_at",
-      "verified_at",
-      "expires_on",
-    ],
+   allowedSortColumns: [
+    "created_at",
+    "updated_at",
+    "document_type",
+    "document_label",
+    "status",
+    "uploaded_at",
+    "verified_at",
+    "expires_on",
+  ],
 
-    operation:
-      "getApplicationDocuments",
+  configureQuery: (
+    query,
+    currentFilters,
+  ) => {
+    return applyExactFilter(
+      query,
+      "requirement_id",
+      currentFilters.requirementId,
+    );
+  },
+
+  operation:
+    "getApplicationDocuments",
 
     fallbackMessage:
       "Unable to load application documents.",
@@ -987,44 +1183,271 @@ export async function getInterview(id) {
   });
 }
 
+function getProfileDisplayName(
+  profile,
+) {
+  if (!profile) {
+    return null;
+  }
+
+  return (
+    profile.preferred_name ||
+    profile.full_name ||
+    profile.email ||
+    profile.id ||
+    null
+  );
+}
+
+async function enrichDecisionProfiles(
+  decisions = [],
+) {
+  const normalizedDecisions =
+    Array.isArray(decisions)
+      ? decisions
+      : [];
+
+  if (!normalizedDecisions.length) {
+    return [];
+  }
+
+  const profileIds = [
+    ...new Set(
+      normalizedDecisions
+        .flatMap((decision) => [
+          decision
+            ?.recommended_by,
+          decision
+            ?.approved_by,
+          decision
+            ?.published_by,
+        ])
+        .map((id) =>
+          String(id || "").trim(),
+        )
+        .filter(Boolean),
+    ),
+  ];
+
+  if (!profileIds.length) {
+    return normalizedDecisions;
+  }
+
+  const profiles =
+    await getProfilesByIds(
+      profileIds,
+    );
+
+  const profilesById =
+    new Map(
+      profiles.map((profile) => [
+        profile.id,
+        profile,
+      ]),
+    );
+
+  return normalizedDecisions.map(
+    (decision) => {
+      const recommendedByProfile =
+        decision.recommended_by
+          ? profilesById.get(
+              decision
+                .recommended_by,
+            ) || null
+          : null;
+
+      const approvedByProfile =
+        decision.approved_by
+          ? profilesById.get(
+              decision
+                .approved_by,
+            ) || null
+          : null;
+
+      const publishedByProfile =
+        decision.published_by
+          ? profilesById.get(
+              decision
+                .published_by,
+            ) || null
+          : null;
+
+      return {
+        ...decision,
+
+        recommended_by_profile:
+          recommendedByProfile,
+
+        recommended_by_name:
+          getProfileDisplayName(
+            recommendedByProfile,
+          ),
+
+        approved_by_profile:
+          approvedByProfile,
+
+        approved_by_name:
+          getProfileDisplayName(
+            approvedByProfile,
+          ),
+
+        published_by_profile:
+          publishedByProfile,
+
+        published_by_name:
+          getProfileDisplayName(
+            publishedByProfile,
+          ),
+      };
+    },
+  );
+}
+
+async function enrichDecisionProfile(
+  decision,
+) {
+  if (!decision) {
+    return null;
+  }
+
+  const [
+    enrichedDecision,
+  ] = await enrichDecisionProfiles([
+    decision,
+  ]);
+
+  return (
+    enrichedDecision ||
+    decision
+  );
+}
+
 export async function getDecisions(
   filters = {},
 ) {
-  return getPagedRecords({
-    table: AdmissionsTable.DECISIONS,
-    filters,
-    searchColumns: [
-      "decision",
-      "decision_reason",
-      "conditions",
-      "review_summary",
-      "internal_notes",
-    ],
-    allowedSortColumns: [
-      "created_at",
-      "updated_at",
-      "status",
-      "decision",
-      "recommended_at",
-      "approved_at",
-      "published_at",
-      "effective_on",
-      "expires_on",
-    ],
-    operation: "getDecisions",
-    fallbackMessage:
-      "Unable to load admission decisions.",
-  });
+  const pagedResult =
+    await getPagedRecords({
+      table:
+        AdmissionsTable.DECISIONS,
+
+      filters,
+
+      searchColumns: [
+        "decision",
+        "decision_reason",
+        "conditions",
+        "review_summary",
+        "internal_notes",
+      ],
+
+      allowedSortColumns: [
+        "created_at",
+        "updated_at",
+        "status",
+        "decision",
+        "recommended_at",
+        "approved_at",
+        "published_at",
+        "effective_on",
+        "expires_on",
+      ],
+
+      operation:
+        "getDecisions",
+
+      fallbackMessage:
+        "Unable to load admission decisions.",
+    });
+
+  const enrichedData =
+    await enrichDecisionProfiles(
+      pagedResult?.items,
+    );
+
+  return {
+    ...pagedResult,
+    items:
+      enrichedData,
+  };
 }
 
 export async function getDecision(id) {
-  return getSingleRecord({
-    table: AdmissionsTable.DECISIONS,
+  console.log(
+    "[Decision] getDecision called",
     id,
-    operation: "getDecision",
-    fallbackMessage:
-      "Unable to load the admission decision.",
-  });
+  );
+  const decision =
+    await getSingleRecord({
+      table:
+        AdmissionsTable.DECISIONS,
+
+      id,
+
+      operation:
+        "getDecision",
+
+      fallbackMessage:
+        "Unable to load the admission decision.",
+    });
+  return enrichDecisionProfile(
+    decision,
+  );
+}
+export async function createDecision(
+  payload,
+) {
+  const {
+    data,
+    error,
+  } = await supabase
+    .from(AdmissionsTable.DECISIONS)
+    .insert(payload)
+    .select()
+    .single();
+
+  if (error) {
+    throwRepositoryError({
+      error,
+      operation:
+        "createDecision",
+      table:
+        AdmissionsTable.DECISIONS,
+      fallbackMessage:
+        "Unable to create the admission decision.",
+    });
+  }
+
+  return data;
+}
+
+export async function updateDecision(
+  id,
+  updates,
+) {
+  const {
+    data,
+    error,
+  } = await supabase
+    .from(AdmissionsTable.DECISIONS)
+    .update(updates)
+    .eq("id", id)
+    .is("deleted_at", null)
+    .select()
+    .single();
+
+  if (error) {
+    throwRepositoryError({
+      error,
+      operation:
+        "updateDecision",
+      table:
+        AdmissionsTable.DECISIONS,
+      fallbackMessage:
+        "Unable to update the admission decision.",
+    });
+  }
+
+  return data;
 }
 
 export async function getOffers(
@@ -1064,6 +1487,62 @@ export async function getOffer(id) {
     fallbackMessage:
       "Unable to load the admission offer.",
   });
+}
+export async function createOffer(
+  payload,
+) {
+  const {
+    data,
+    error,
+  } = await supabase
+    .from(AdmissionsTable.OFFERS)
+    .insert(payload)
+    .select()
+    .single();
+
+  if (error) {
+    throwRepositoryError({
+      error,
+      operation:
+        "createOffer",
+      table:
+        AdmissionsTable.OFFERS,
+      fallbackMessage:
+        "Unable to create the admission offer.",
+    });
+  }
+
+  return data;
+}
+
+export async function updateOffer(
+  id,
+  updates,
+) {
+  const {
+    data,
+    error,
+  } = await supabase
+    .from(AdmissionsTable.OFFERS)
+    .update(updates)
+    .eq("id", id)
+    .is("deleted_at", null)
+    .select()
+    .single();
+
+  if (error) {
+    throwRepositoryError({
+      error,
+      operation:
+        "updateOffer",
+      table:
+        AdmissionsTable.OFFERS,
+      fallbackMessage:
+        "Unable to update the admission offer.",
+    });
+  }
+
+  return data;
 }
 
 export async function getStatusHistory(
@@ -1524,6 +2003,9 @@ export const admissionsRepository = Object.freeze({
   getInquiries,
   getInquiry,
 
+  getProfilesByIds,
+
+
   getApplicants,
   getApplicant,
 
@@ -1542,6 +2024,14 @@ export const admissionsRepository = Object.freeze({
   getApplications,
   getApplication,
 
+  getAdmissionDocumentRequirements,
+  getAdmissionDocumentRequirement,
+
+  createAdmissionDocumentRequirement,
+  updateAdmissionDocumentRequirement,
+  archiveAdmissionDocumentRequirement,
+  deleteAdmissionDocumentRequirement,
+
   getApplicationDocuments,
   getApplicationDocument,
 
@@ -1555,8 +2045,14 @@ export const admissionsRepository = Object.freeze({
   getDecisions,
   getDecision,
 
+  createDecision,
+  updateDecision,
+
   getOffers,
   getOffer,
+
+  createOffer,
+  updateOffer,
 
   getStatusHistory,
   createStatusHistory,

@@ -1,4 +1,4 @@
-﻿import {
+import {
   useCallback,
   useEffect,
   useMemo,
@@ -31,6 +31,15 @@ import useApplicantState
 
 import useApplicationState
   from "./useApplicationState";  
+
+import useDecisionState
+  from "./useDecisionState";
+
+import useOfferState
+  from "./useOfferState";
+
+import useApplicationDocumentRequirementState
+  from "./useApplicationDocumentRequirementState";
 
 import useApplicationDocumentState
   from "./useApplicationDocumentState";
@@ -114,6 +123,7 @@ export default function AdmissionsProvider({
   children,
 }) {
   const {
+    user,
     workspaceReady,
     organizationId,
     schoolId,
@@ -142,6 +152,21 @@ export default function AdmissionsProvider({
     admissionCycles,
     setAdmissionCycles,
   ] = useState([]);
+
+  const [
+    reviewerProfilesById,
+    setReviewerProfilesById,
+  ] = useState({});
+
+  const [
+    reviewerProfilesLoading,
+    setReviewerProfilesLoading,
+  ] = useState(false);
+
+  const [
+    reviewerProfilesError,
+    setReviewerProfilesError,
+  ] = useState("");
 
   const [
     admissionCyclesLoading,
@@ -545,8 +570,75 @@ export default function AdmissionsProvider({
 
       selectedAdmissionCycleId,
 
-    refreshDashboard,
-  });
+      refreshDashboard,
+    });
+
+  const decisionState =
+    useDecisionState({
+      service,
+
+      workspaceReady,
+      authorizationReady,
+
+      canViewAdmissions,
+      canCreateAdmissions,
+      canEditAdmissions,
+
+      currentUserId:
+        user?.id ?? null,
+
+      selectedAdmissionCycleId,
+
+      refreshApplications:
+        applicationState
+          .refreshApplications,
+
+      refreshDashboard,
+    });
+
+
+  const offerState =
+    useOfferState({
+      service,
+
+      workspaceReady,
+      authorizationReady,
+
+      canViewAdmissions,
+      canCreateAdmissions,
+      canEditAdmissions,
+
+      currentUserId:
+        user?.id ?? null,
+
+      selectedAdmissionCycleId,
+
+      refreshApplications:
+        applicationState
+          .refreshApplications,
+
+      refreshDecisions:
+        decisionState
+          .refreshDecisions,
+
+      refreshDashboard,
+    });
+
+  const applicationDocumentRequirementState =
+    useApplicationDocumentRequirementState({
+      service,
+
+      workspaceReady,
+      authorizationReady,
+
+      canViewAdmissions,
+      canCreateAdmissions,
+      canEditAdmissions,
+
+      selectedAdmissionCycleId,
+
+      refreshDashboard,
+    });
 
   const applicationDocumentState =
     useApplicationDocumentState({
@@ -559,6 +651,12 @@ export default function AdmissionsProvider({
       canCreateAdmissions,
       canEditAdmissions,
 
+      canReviewApplicationDocuments:
+        canEditAdmissions,
+
+      currentUserId:
+        user?.id ?? null,
+
       organizationId,
       schoolId,
       campusId,
@@ -570,6 +668,11 @@ export default function AdmissionsProvider({
       selectedApplication:
         applicationState
           .selectedApplication,
+
+
+      refreshApplications:
+        applicationState
+          .refreshApplications,
 
       refreshDashboard,
     });
@@ -1047,11 +1150,203 @@ export default function AdmissionsProvider({
     refreshDashboard,
   ]);
 
+  const reviewerProfileIds =
+    useMemo(() => {
+      const ids = new Set();
+
+      const applicationItems =
+        Array.isArray(
+          applicationState
+            ?.applications,
+        )
+          ? applicationState
+              .applications
+          : Array.isArray(
+              applicationState
+                ?.applications
+                ?.items,
+            )
+            ? applicationState
+                .applications
+                .items
+            : [];
+
+      applicationItems.forEach(
+        (application) => {
+          const reviewerId =
+            application
+              ?.assigned_reviewer_id;
+
+          if (reviewerId) {
+            ids.add(reviewerId);
+          }
+        },
+      );
+
+      const selectedReviewerId =
+        applicationState
+          ?.selectedApplication
+          ?.assigned_reviewer_id;
+
+      if (selectedReviewerId) {
+        ids.add(selectedReviewerId);
+      }
+
+      const documentResult =
+        applicationDocumentState
+          ?.applicationDocuments;
+
+      const documentItems =
+        Array.isArray(documentResult)
+          ? documentResult
+          : Array.isArray(
+              documentResult?.items,
+            )
+            ? documentResult.items
+            : [];
+
+      documentItems.forEach(
+        (document) => {
+          [
+            document?.verified_by,
+            document?.rejected_by,
+            document?.reviewed_by,
+            document?.uploaded_by,
+            document
+              ?.replacement_requested_by,
+          ]
+            .filter(Boolean)
+            .forEach((id) => {
+              ids.add(id);
+            });
+        },
+      );
+
+      return Array.from(ids)
+        .map((id) =>
+          String(id || "").trim(),
+        )
+        .filter(Boolean)
+        .sort();
+    }, [
+      applicationState
+        ?.applications,
+      applicationState
+        ?.selectedApplication,
+      applicationDocumentState
+        ?.applicationDocuments,
+    ]);
+
+  const reviewerProfileIdsKey =
+    reviewerProfileIds.join("|");
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadReviewerProfiles() {
+      if (
+        !service ||
+        !workspaceReady ||
+        !authorizationReady ||
+        !canViewAdmissions
+      ) {
+        if (active) {
+          setReviewerProfilesById({});
+          setReviewerProfilesLoading(
+            false,
+          );
+          setReviewerProfilesError("");
+        }
+
+        return;
+      }
+
+      if (
+        !reviewerProfileIds.length
+      ) {
+        if (active) {
+          setReviewerProfilesById({});
+          setReviewerProfilesLoading(
+            false,
+          );
+          setReviewerProfilesError("");
+        }
+
+        return;
+      }
+
+      setReviewerProfilesLoading(true);
+      setReviewerProfilesError("");
+
+      try {
+        const profiles =
+          await service
+            .getReviewerProfiles(
+              reviewerProfileIds,
+            );
+
+        if (!active) {
+          return;
+        }
+
+        const profilesById = {};
+
+        (
+          Array.isArray(profiles)
+            ? profiles
+            : []
+        ).forEach((profile) => {
+          if (profile?.id) {
+            profilesById[
+              profile.id
+            ] = profile;
+          }
+        });
+
+        setReviewerProfilesById(
+          profilesById,
+        );
+      } catch (profileError) {
+        if (!active) {
+          return;
+        }
+
+        setReviewerProfilesById({});
+
+        setReviewerProfilesError(
+          profileError?.message ||
+          "Unable to load reviewer profiles.",
+        );
+      } finally {
+        if (active) {
+          setReviewerProfilesLoading(
+            false,
+          );
+        }
+      }
+    }
+
+    void loadReviewerProfiles();
+
+    return () => {
+      active = false;
+    };
+  }, [
+    service,
+    workspaceReady,
+    authorizationReady,
+    canViewAdmissions,
+    reviewerProfileIdsKey,
+  ]);
   const value = useMemo(
     () => ({
       service,
       loading,
       error,
+
+      reviewerProfilesById,
+      reviewerProfilesLoading,
+      reviewerProfilesError,
 
       admissionCycles,
       admissionCyclesLoading,
@@ -1105,6 +1400,9 @@ export default function AdmissionsProvider({
       ...inquiryState,
       ...applicantState,
       ...applicationState,
+      ...decisionState,
+      ...offerState,
+      ...applicationDocumentRequirementState,
       ...applicationDocumentState,
 
       clearError,
@@ -1115,6 +1413,10 @@ export default function AdmissionsProvider({
       service,
       loading,
       error,
+
+      reviewerProfilesById,
+      reviewerProfilesLoading,
+      reviewerProfilesError,
 
       admissionCycles,
       admissionCyclesLoading,
@@ -1148,6 +1450,9 @@ export default function AdmissionsProvider({
       inquiryState,
       applicantState,
       applicationState,
+      decisionState,
+      offerState,
+      applicationDocumentRequirementState,
       applicationDocumentState,
 
       clearError,

@@ -1,4 +1,4 @@
-import {
+﻿import {
   useState,
 } from "react";
 
@@ -9,6 +9,10 @@ import {
 import {
   AssessmentBankManager,
 } from "./components/assessment-banks";
+
+import {
+  AssessmentAssignmentWorkspace,
+} from "./components/assignments";
 
 import {
   QuestionBank,
@@ -22,10 +26,16 @@ import {
   TemplateBuilder,
 } from "./components/templates";
 
+import StudentAssessmentDashboard from "./pages/StudentAssessmentDashboard";
+
 const WORKSPACE_TABS = [
   {
     id: "dashboard",
     label: "Dashboard",
+  },
+  {
+    id: "my-assessments",
+    label: "My Assessments",
   },
   {
     id: "banks",
@@ -43,6 +53,10 @@ const WORKSPACE_TABS = [
   {
     id: "templates",
     label: "Templates",
+  },
+  {
+    id: "assignments",
+    label: "Assignments",
   },
 ];
 
@@ -76,6 +90,7 @@ function Dashboard() {
     topics,
     questions,
     templates,
+    assignments,
 
     assessmentsLoading,
     assessmentsError,
@@ -98,7 +113,7 @@ function Dashboard() {
         </section>
       )}
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <SummaryCard
           label="Assessment banks"
           value={
@@ -109,14 +124,26 @@ function Dashboard() {
 
         <SummaryCard
           label="Questions"
-          value={questions.length}
+          value={
+            questions.length
+          }
           description="Questions currently available on the active result page."
         />
 
         <SummaryCard
           label="Templates"
-          value={templates.length}
+          value={
+            templates.length
+          }
           description="Assessment structures available for authoring and publishing."
+        />
+
+        <SummaryCard
+          label="Assignments"
+          value={
+            assignments.length
+          }
+          description="Runtime assessment assignments currently available on the active result page."
         />
 
         <SummaryCard
@@ -134,15 +161,16 @@ function Dashboard() {
         </p>
 
         <h2 className="mt-1 text-xl font-semibold text-slate-950">
-          Authoring foundation
+          Authoring and delivery foundation
         </h2>
 
         <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-          Create an Assessment Bank,
-          configure the Classification
-          Hierarchy, and then use the
-          Question Bank to author reusable
-          assessment questions.
+          Create assessment banks,
+          configure the classification
+          hierarchy, author reusable
+          questions, publish templates,
+          and schedule assessment
+          assignments.
         </p>
 
         <button
@@ -178,7 +206,7 @@ export default function AssessmentCenter() {
         </p>
 
         <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-          Build, publish, and manage
+          Build, publish, assign, and manage
           assessments
         </h1>
 
@@ -186,22 +214,29 @@ export default function AssessmentCenter() {
           Manage assessment banks,
           question authoring,
           classification hierarchies,
-          templates, and lifecycle
-          controls.
+          templates, assignments, and
+          runtime lifecycle controls.
         </p>
       </section>
 
       <nav className="flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
         {WORKSPACE_TABS.map(
-          (tab) => (
+          (
+            tab,
+          ) => (
             <button
-              key={tab.id}
+              key={
+                tab.id
+              }
               type="button"
               onClick={() =>
-                setActiveTab(tab.id)
+                setActiveTab(
+                  tab.id,
+                )
               }
               className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
-                activeTab === tab.id
+                activeTab ===
+                tab.id
                   ? "bg-blue-600 text-white"
                   : "text-slate-600 hover:bg-slate-100"
               }`}
@@ -215,6 +250,11 @@ export default function AssessmentCenter() {
       {activeTab ===
         "dashboard" && (
         <Dashboard />
+      )}
+
+      {activeTab ===
+        "my-assessments" && (
+        <StudentAssessmentDashboard />
       )}
 
       {activeTab ===
@@ -235,6 +275,11 @@ export default function AssessmentCenter() {
       {activeTab ===
         "templates" && (
         <TemplateBuilder />
+      )}
+
+      {activeTab ===
+        "assignments" && (
+        <AssessmentAssignmentWorkspace />
       )}
     </div>
   );

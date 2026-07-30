@@ -27,9 +27,6 @@ const EMPTY_FORM = Object.freeze({
   application_type: "new_student",
   status: "draft",
   priority: "normal",
-
-  completion_percentage: "0",
-
   application_fee_amount: "",
   application_fee_currency: "",
   application_fee_status: "",
@@ -65,17 +62,6 @@ function createFormState(application) {
     priority:
       application.priority ||
       "normal",
-
-    completion_percentage:
-      application
-        .completion_percentage !==
-      undefined
-        ? String(
-            application
-              .completion_percentage,
-          )
-        : "0",
-
     application_fee_amount:
       application
         .application_fee_amount !==
@@ -137,22 +123,6 @@ function validateForm(form, applicant) {
   ) {
     return "Entry grade level is required.";
   }
-
-  const completionPercentage =
-    Number(
-      form.completion_percentage,
-    );
-
-  if (
-    !Number.isFinite(
-      completionPercentage,
-    ) ||
-    completionPercentage < 0 ||
-    completionPercentage > 100
-  ) {
-    return "Completion percentage must be between 0 and 100.";
-  }
-
   if (
     form.application_fee_amount !==
       "" &&
@@ -366,13 +336,6 @@ export default function ApplicationDialog({
 
       priority:
         form.priority,
-
-      completion_percentage:
-        Number(
-          form.completion_percentage ||
-            0,
-        ),
-
       application_fee_amount:
         form.application_fee_amount ===
         ""
@@ -749,29 +712,19 @@ export default function ApplicationDialog({
                   )}
                 </select>
               </Field>
+              <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
+                <p className="text-xs font-black uppercase tracking-[0.12em] text-indigo-700">
+                  Completion
+                </p>
 
-              <Field
-                label="Completion percentage"
-                helper="Initial application completeness from 0 to 100."
-              >
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="1"
-                  value={
-                    form.completion_percentage
-                  }
-                  onChange={updateField(
-                    "completion_percentage",
-                  )}
-                  disabled={
-                    applicationMutationLoading
-                  }
-                  className={INPUT_CLASSES}
-                />
-              </Field>
+                <p className="mt-2 text-sm font-black text-slate-900">
+                  Calculated automatically
+                </p>
 
+                <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">
+                  Application completion is derived from configured document requirements and verified uploads.
+                </p>
+              </div>
               <SectionHeading
                 title="Application fee"
                 description="Optional fee details for this application."

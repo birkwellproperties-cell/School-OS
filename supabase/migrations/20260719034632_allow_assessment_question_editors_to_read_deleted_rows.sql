@@ -1,4 +1,4 @@
-﻿begin;
+begin;
 
 drop policy if exists
   assessment_questions_select_editors

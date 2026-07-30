@@ -17,6 +17,10 @@ import {
   getAdmissionStatusLabel,
 } from "../constants";
 
+
+import {
+  useAdmissions,
+} from "../hooks";
 import ApplicationDocuments
   from "./ApplicationDocuments";
 
@@ -37,6 +41,53 @@ function formatDate(value) {
       dateStyle: "medium",
     },
   ).format(date);
+}
+
+function formatApplicantName(
+  applicant,
+) {
+  if (!applicant) {
+    return "";
+  }
+
+  const name = [
+    applicant.first_name,
+    applicant.middle_name,
+    applicant.last_name,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  return (
+    name ||
+    applicant.preferred_name ||
+    applicant.applicant_number ||
+    ""
+  );
+}
+
+function formatReviewer(
+  reviewer,
+) {
+  if (!reviewer) {
+    return "Unassigned";
+  }
+
+  if (
+    typeof reviewer === "string"
+  ) {
+    return reviewer;
+  }
+
+  return (
+    reviewer.preferred_name ||
+    reviewer.full_name ||
+    reviewer.display_name ||
+    reviewer.email ||
+    reviewer.id ||
+    "Assigned reviewer"
+  );
 }
 
 function ApplicationStatusBadge({
@@ -258,6 +309,11 @@ export default function ApplicationOverview({
   canEditApplication,
   onEditApplication,
 }) {
+  const {
+    applicants,
+    admissionCycles,
+    reviewerProfilesById,
+  } = useAdmissions();
   if (!application) {
     return (
       <div className="p-4 sm:p-6">
@@ -265,6 +321,67 @@ export default function ApplicationOverview({
       </div>
     );
   }
+  const applicantItems =
+    Array.isArray(applicants)
+      ? applicants
+      : Array.isArray(
+          applicants?.items,
+        )
+        ? applicants.items
+        : [];
+
+  const linkedApplicant =
+    applicantItems.find(
+      (candidate) =>
+        candidate.id ===
+        application.applicant_id,
+    ) || null;
+
+  const cycleItems =
+    Array.isArray(admissionCycles)
+      ? admissionCycles
+      : [];
+
+  const linkedAdmissionCycle =
+    cycleItems.find(
+      (cycle) =>
+        cycle.id ===
+        application.admission_cycle_id,
+    ) || null;
+
+  const applicantName =
+    formatApplicantName(
+      linkedApplicant,
+    ) ||
+    application.applicant_id ||
+    "Not set";
+
+  const applicantNumber =
+    linkedApplicant
+      ?.applicant_number ||
+    "Not set";
+
+  const admissionCycleName =
+    linkedAdmissionCycle?.name ||
+    linkedAdmissionCycle?.code ||
+    application.admission_cycle_id ||
+    "Not set";
+
+  const assignedReviewer =
+    application
+      .assigned_reviewer_id
+      ? reviewerProfilesById?.[
+          application
+            .assigned_reviewer_id
+        ] ||
+        application
+          .assigned_reviewer_id
+      : null;
+
+  const assignedReviewerName =
+    formatReviewer(
+      assignedReviewer,
+    );
 
   const completionPercentage = Math.min(
     100,
@@ -437,23 +554,18 @@ export default function ApplicationOverview({
           />
 
           <DetailItem
-            label="Applicant ID"
-            value={application.applicant_id}
+            label="Applicant"
+            value={applicantName}
           />
 
           <DetailItem
-            label="Admission cycle ID"
-            value={
-              application.admission_cycle_id
-            }
+            label="Admission cycle"
+            value={admissionCycleName}
           />
 
           <DetailItem
             label="Assigned reviewer"
-            value={
-              application.assigned_reviewer_id ||
-              "Unassigned"
-            }
+            value={assignedReviewerName}
           />
 
           <DetailItem
@@ -511,8 +623,13 @@ export default function ApplicationOverview({
 
           <div className="mt-5 space-y-3">
             <DetailItem
-              label="Applicant ID"
-              value={application.applicant_id}
+              label="Applicant"
+              value={applicantName}
+            />
+
+            <DetailItem
+              label="Applicant number"
+              value={applicantNumber}
             />
 
             <DetailItem

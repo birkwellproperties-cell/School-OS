@@ -24,16 +24,20 @@ import {
 } from "./AssessmentContext";
 
 import {
+  useAssessmentAssignmentState,
+} from "./useAssessmentAssignmentState";
+
+import {
   useAssessmentBankState,
 } from "./useAssessmentBankState";
 
 import {
-  useAssessmentTaxonomyState,
-} from "./useAssessmentTaxonomyState";
-
-import {
   useAssessmentQuestionState,
 } from "./useAssessmentQuestionState";
+
+import {
+  useAssessmentTaxonomyState,
+} from "./useAssessmentTaxonomyState";
 
 import {
   useAssessmentTemplateState,
@@ -180,6 +184,19 @@ export default function AssessmentProvider({
         canManageAssessmentLifecycle,
     });
 
+  const assignmentState =
+    useAssessmentAssignmentState({
+      service,
+      workspaceReady,
+      authorizationReady,
+      canViewAssessments,
+
+      canCreateAssessments,
+      canEditAssessments,
+      canAssignAssessments,
+      canManageAssessments,
+    });
+
   const refreshAssessmentCenter =
     useCallback(async () => {
       if (
@@ -196,6 +213,7 @@ export default function AssessmentProvider({
         taxonomy,
         questions,
         templates,
+        assignments,
       ] = await Promise.all([
         bankState
           .refreshAssessmentBanks(),
@@ -208,6 +226,9 @@ export default function AssessmentProvider({
 
         templateState
           .refreshTemplates(),
+
+        assignmentState
+          .refreshAssignments(),
       ]);
 
       return {
@@ -215,6 +236,7 @@ export default function AssessmentProvider({
         taxonomy,
         questions,
         templates,
+        assignments,
       };
     }, [
       service,
@@ -226,6 +248,7 @@ export default function AssessmentProvider({
       taxonomyState,
       questionState,
       templateState,
+      assignmentState,
     ]);
 
   const resetAssessmentCenter =
@@ -241,11 +264,15 @@ export default function AssessmentProvider({
 
       templateState
         .resetTemplates();
+
+      assignmentState
+        .resetAssignments();
     }, [
       bankState,
       taxonomyState,
       questionState,
       templateState,
+      assignmentState,
     ]);
 
   const assessmentsLoading =
@@ -256,7 +283,9 @@ export default function AssessmentProvider({
     questionState
       .questionsLoading ||
     templateState
-      .templateLoading;
+      .templateLoading ||
+    assignmentState
+      .assignmentsLoading;
 
   const assessmentsError =
     bankState
@@ -267,6 +296,8 @@ export default function AssessmentProvider({
       .questionsError ||
     templateState
       .templateError ||
+    assignmentState
+      .assignmentsError ||
     "";
 
   const assessmentsReady =
@@ -282,6 +313,8 @@ export default function AssessmentProvider({
       .questionsReady &&
     templateState
       .templateReady &&
+    assignmentState
+      .assignmentsReady &&
     !assessmentsLoading &&
     !assessmentsError;
 
@@ -325,6 +358,7 @@ export default function AssessmentProvider({
         ...taxonomyState,
         ...questionState,
         ...templateState,
+        ...assignmentState,
       }),
       [
         service,
@@ -361,6 +395,7 @@ export default function AssessmentProvider({
         taxonomyState,
         questionState,
         templateState,
+        assignmentState,
       ],
     );
 

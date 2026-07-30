@@ -85,6 +85,9 @@ export default function useApplicationDocumentState({
   canViewAdmissions,
   canCreateAdmissions,
   canEditAdmissions,
+  canReviewApplicationDocuments,
+
+  currentUserId,
 
   organizationId,
   schoolId,
@@ -93,6 +96,7 @@ export default function useApplicationDocumentState({
   selectedApplicationId,
   selectedApplication,
 
+  refreshApplications,
   refreshDashboard,
 }) {
   const requestRef =
@@ -131,6 +135,21 @@ export default function useApplicationDocumentState({
   const [
     documentMutationError,
     setDocumentMutationError,
+  ] = useState("");
+
+  const [
+    documentReviewLoading,
+    setDocumentReviewLoading,
+  ] = useState(false);
+
+  const [
+    documentReviewError,
+    setDocumentReviewError,
+  ] = useState("");
+
+  const [
+    lastDocumentReviewAction,
+    setLastDocumentReviewAction,
   ] = useState("");
 
   const [
@@ -175,6 +194,16 @@ export default function useApplicationDocumentState({
       ),
     );
 
+  const canReviewDocuments =
+    Boolean(
+      service &&
+      workspaceReady &&
+      authorizationReady &&
+      selectedApplicationId &&
+      currentUserId &&
+      canReviewApplicationDocuments,
+    );
+
   const resetApplicationDocuments =
     useCallback(() => {
       requestRef.current += 1;
@@ -198,6 +227,14 @@ export default function useApplicationDocumentState({
       );
 
       setDocumentMutationError("");
+
+      setDocumentReviewLoading(
+        false,
+      );
+
+      setDocumentReviewError("");
+
+      setLastDocumentReviewAction("");
 
       setUploadProgress(0);
     }, []);
@@ -235,7 +272,8 @@ export default function useApplicationDocumentState({
               {
                 page: 1,
                 pageSize: 50,
-                sortBy: "created_at",
+                sortBy:
+                  "created_at",
                 ascending: true,
               },
             );
@@ -333,6 +371,7 @@ export default function useApplicationDocumentState({
     useCallback(
       async ({
         file,
+        requirementId = null,
         documentType,
         documentLabel,
         requirementStatus =
@@ -451,6 +490,10 @@ export default function useApplicationDocumentState({
                 .createApplicationDocument(
                   selectedApplicationId,
                   {
+                    requirement_id:
+                      requirementId ||
+                      null,
+
                     document_type:
                       String(
                         documentType,
@@ -486,6 +529,10 @@ export default function useApplicationDocumentState({
                     file_size_bytes:
                       uploadedFile
                         .fileSizeBytes,
+
+                    uploaded_by:
+                      currentUserId ||
+                      null,
 
                     uploaded_at:
                       new Date()
@@ -543,6 +590,12 @@ export default function useApplicationDocumentState({
           await Promise.all([
             refreshApplicationDocuments(),
 
+
+            typeof refreshApplications ===
+              "function"
+              ? refreshApplications()
+              : Promise.resolve(),
+
             typeof refreshDashboard ===
               "function"
               ? refreshDashboard()
@@ -596,11 +649,254 @@ export default function useApplicationDocumentState({
         schoolId,
         campusId,
 
+        currentUserId,
+
         selectedApplicationId,
         selectedApplication,
 
         refreshApplicationDocuments,
+        refreshApplications,
         refreshDashboard,
+      ],
+    );
+
+  const runDocumentReviewMutation =
+    useCallback(
+      async ({
+        action,
+        documentId,
+        payload = {},
+      }) => {
+        if (!service) {
+          throw new Error(
+            "Admissions service is not available.",
+          );
+        }
+
+        if (
+          !workspaceReady ||
+          !authorizationReady
+        ) {
+          throw new Error(
+            "The Admissions workspace is not ready.",
+          );
+        }
+
+        if (
+          !canReviewApplicationDocuments
+        ) {
+          throw new Error(
+            "You do not have permission to review application documents.",
+          );
+        }
+
+        if (!currentUserId) {
+          throw new Error(
+            "The authenticated reviewer could not be identified.",
+          );
+        }
+
+        if (!documentId) {
+          throw new Error(
+            "Select an application document first.",
+          );
+        }
+
+        setDocumentReviewLoading(
+          true,
+        );
+
+        setDocumentReviewError("");
+
+        setLastDocumentReviewAction(
+          action,
+        );
+
+        try {
+          let updatedDocument;
+
+          switch (action) {
+            case "under_review":
+              updatedDocument =
+                await service
+                  .markApplicationDocumentUnderReview(
+                    documentId,
+                  );
+              break;
+
+            case "verify":
+              updatedDocument =
+                await service
+                  .verifyApplicationDocument(
+                    documentId,
+                    {
+                      reviewerId:
+                        currentUserId,
+
+                      notes:
+                        payload.notes,
+                    },
+                  );
+              break;
+
+            case "reject":
+              updatedDocument =
+                await service
+                  .rejectApplicationDocument(
+                    documentId,
+                    {
+                      reviewerId:
+                        currentUserId,
+
+                      reason:
+                        payload.reason,
+
+                      notes:
+                        payload.notes,
+                    },
+                  );
+              break;
+
+            case "request_replacement":
+              updatedDocument =
+                await service
+                  .requestApplicationDocumentReplacement(
+                    documentId,
+                    {
+                      reviewerId:
+                        currentUserId,
+
+                      reason:
+                        payload.reason,
+                    },
+                  );
+              break;
+
+            default:
+              throw new Error(
+                "The document review action is not supported.",
+              );
+          }
+
+          await Promise.all([
+            refreshApplicationDocuments(),
+
+
+            typeof refreshApplications ===
+              "function"
+              ? refreshApplications()
+              : Promise.resolve(),
+
+            typeof refreshDashboard ===
+              "function"
+              ? refreshDashboard()
+              : Promise.resolve(),
+          ]);
+
+          if (
+            mountedRef.current &&
+            updatedDocument?.id
+          ) {
+            setSelectedApplicationDocumentId(
+              updatedDocument.id,
+            );
+          }
+
+          return updatedDocument;
+        } catch (error) {
+          if (
+            mountedRef.current
+          ) {
+            setDocumentReviewError(
+              getErrorMessage(
+                error,
+                "Unable to update the application document.",
+              ),
+            );
+          }
+
+          throw error;
+        } finally {
+          if (
+            mountedRef.current
+          ) {
+            setDocumentReviewLoading(
+              false,
+            );
+          }
+        }
+      },
+      [
+        service,
+        workspaceReady,
+        authorizationReady,
+        canReviewApplicationDocuments,
+        currentUserId,
+        refreshApplicationDocuments,
+        refreshApplications,
+        refreshDashboard,
+      ],
+    );
+
+  const markApplicationDocumentUnderReview =
+    useCallback(
+      (documentId) =>
+        runDocumentReviewMutation({
+          action:
+            "under_review",
+          documentId,
+        }),
+      [
+        runDocumentReviewMutation,
+      ],
+    );
+
+  const verifyApplicationDocument =
+    useCallback(
+      (
+        documentId,
+        payload = {},
+      ) =>
+        runDocumentReviewMutation({
+          action: "verify",
+          documentId,
+          payload,
+        }),
+      [
+        runDocumentReviewMutation,
+      ],
+    );
+
+  const rejectApplicationDocument =
+    useCallback(
+      (
+        documentId,
+        payload = {},
+      ) =>
+        runDocumentReviewMutation({
+          action: "reject",
+          documentId,
+          payload,
+        }),
+      [
+        runDocumentReviewMutation,
+      ],
+    );
+
+  const requestApplicationDocumentReplacement =
+    useCallback(
+      (
+        documentId,
+        payload = {},
+      ) =>
+        runDocumentReviewMutation({
+          action:
+            "request_replacement",
+          documentId,
+          payload,
+        }),
+      [
+        runDocumentReviewMutation,
       ],
     );
 
@@ -641,6 +937,11 @@ export default function useApplicationDocumentState({
   const clearDocumentMutationError =
     useCallback(() => {
       setDocumentMutationError("");
+    }, []);
+
+  const clearDocumentReviewError =
+    useCallback(() => {
+      setDocumentReviewError("");
     }, []);
 
   const resetUploadProgress =
@@ -690,19 +991,32 @@ export default function useApplicationDocumentState({
       documentMutationLoading,
       documentMutationError,
 
+      documentReviewLoading,
+      documentReviewError,
+      lastDocumentReviewAction,
+
       uploadProgress,
 
       canUploadApplicationDocuments,
+
+      canReviewApplicationDocuments:
+        canReviewDocuments,
 
       refreshApplicationDocuments,
       resetApplicationDocuments,
 
       uploadApplicationDocument,
 
+      markApplicationDocumentUnderReview,
+      verifyApplicationDocument,
+      rejectApplicationDocument,
+      requestApplicationDocumentReplacement,
+
       selectApplicationDocument,
 
       clearApplicationDocumentsError,
       clearDocumentMutationError,
+      clearDocumentReviewError,
 
       resetUploadProgress,
     }),
@@ -718,19 +1032,30 @@ export default function useApplicationDocumentState({
       documentMutationLoading,
       documentMutationError,
 
+      documentReviewLoading,
+      documentReviewError,
+      lastDocumentReviewAction,
+
       uploadProgress,
 
       canUploadApplicationDocuments,
+      canReviewDocuments,
 
       refreshApplicationDocuments,
       resetApplicationDocuments,
 
       uploadApplicationDocument,
 
+      markApplicationDocumentUnderReview,
+      verifyApplicationDocument,
+      rejectApplicationDocument,
+      requestApplicationDocumentReplacement,
+
       selectApplicationDocument,
 
       clearApplicationDocumentsError,
       clearDocumentMutationError,
+      clearDocumentReviewError,
 
       resetUploadProgress,
     ],

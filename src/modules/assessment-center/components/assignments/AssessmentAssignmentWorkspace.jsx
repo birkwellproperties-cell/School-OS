@@ -1,0 +1,1665 @@
+import {
+  useMemo,
+  useState,
+} from "react";
+import {
+  Archive,
+  CalendarClock,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  CircleSlash2,
+  ClipboardList,
+  Clock3,
+  FileText,
+  LoaderCircle,
+  LockKeyhole,
+  Monitor,
+  Pencil,
+  Play,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  Search,
+  ShieldCheck,
+  Users,
+  X,
+} from "lucide-react";
+
+import {
+  useAssessment,
+} from "../../context";
+import AssessmentAssignmentDialog from "./AssessmentAssignmentDialog";
+
+const ASSIGNMENT_STATUS_OPTIONS = [
+  {
+    value: "",
+    label: "All statuses",
+  },
+  {
+    value: "draft",
+    label: "Draft",
+  },
+  {
+    value: "scheduled",
+    label: "Scheduled",
+  },
+  {
+    value: "open",
+    label: "Open",
+  },
+  {
+    value: "closed",
+    label: "Closed",
+  },
+  {
+    value: "cancelled",
+    label: "Cancelled",
+  },
+  {
+    value: "completed",
+    label: "Completed",
+  },
+  {
+    value: "archived",
+    label: "Archived",
+  },
+];
+
+const STATUS_STYLES = {
+  draft:
+    "border-slate-200 bg-slate-100 text-slate-700",
+  scheduled:
+    "border-amber-200 bg-amber-50 text-amber-700",
+  open:
+    "border-emerald-200 bg-emerald-50 text-emerald-700",
+  closed:
+    "border-blue-200 bg-blue-50 text-blue-700",
+  cancelled:
+    "border-red-200 bg-red-50 text-red-700",
+  completed:
+    "border-violet-200 bg-violet-50 text-violet-700",
+  archived:
+    "border-slate-300 bg-slate-100 text-slate-600",
+};
+
+const ACTIONS = {
+  publish: {
+    title: "Publish assignment",
+    confirmLabel: "Publish",
+    description:
+      "Publishing makes this assignment available according to its opening schedule.",
+    tone: "blue",
+    icon: Play,
+  },
+  publishNow: {
+    title: "Publish assignment now",
+    confirmLabel: "Publish now",
+    description:
+      "This will open the assignment immediately, even if its scheduled opening time is later.",
+    tone: "blue",
+    icon: Play,
+  },
+  close: {
+    title: "Close assignment",
+    confirmLabel: "Close assignment",
+    description:
+      "Closing prevents new assessment attempts from being started.",
+    tone: "amber",
+    icon: LockKeyhole,
+  },
+  reopen: {
+    title: "Reopen assignment",
+    confirmLabel: "Reopen",
+    description:
+      "Reopening allows eligible recipients to start or continue attempts.",
+    tone: "blue",
+    icon: RotateCcw,
+  },
+  cancel: {
+    title: "Cancel assignment",
+    confirmLabel: "Cancel assignment",
+    description:
+      "Cancelling stops this assignment. This action should only be used when the assignment will not proceed.",
+    tone: "red",
+    icon: CircleSlash2,
+  },
+  archive: {
+    title: "Archive assignment",
+    confirmLabel: "Archive",
+    description:
+      "Archiving removes the assignment from active operational workflows while preserving its record.",
+    tone: "slate",
+    icon: Archive,
+  },
+};
+
+function normalizeText(value) {
+  return typeof value === "string"
+    ? value.trim()
+    : "";
+}
+
+function humanizeValue(
+  value,
+  fallback = "Not specified",
+) {
+  const normalized =
+    normalizeText(value);
+
+  if (!normalized) {
+    return fallback;
+  }
+
+  return normalized
+    .replace(/[_-]+/g, " ")
+    .replace(
+      /\b\w/g,
+      (character) =>
+        character.toUpperCase(),
+    );
+}
+
+function formatDateTime(value) {
+  if (!value) {
+    return "Not scheduled";
+  }
+
+  const date =
+    new Date(value);
+
+  if (
+    Number.isNaN(
+      date.getTime(),
+    )
+  ) {
+    return "Not scheduled";
+  }
+
+  return new Intl.DateTimeFormat(
+    undefined,
+    {
+      dateStyle: "medium",
+      timeStyle: "short",
+    },
+  ).format(date);
+}
+
+function formatNumber(
+  value,
+  fallback = "Not specified",
+) {
+  if (
+    value === null ||
+    value === undefined ||
+    value === ""
+  ) {
+    return fallback;
+  }
+
+  const number =
+    Number(value);
+
+  if (
+    Number.isNaN(number)
+  ) {
+    return fallback;
+  }
+
+  return new Intl.NumberFormat().format(
+    number,
+  );
+}
+
+function getErrorMessage(
+  error,
+  fallback,
+) {
+  return (
+    normalizeText(
+      error?.message,
+    ) ||
+    fallback
+  );
+}
+
+function isFuture(value) {
+  if (!value) {
+    return false;
+  }
+
+  const timestamp =
+    new Date(value).getTime();
+
+  return (
+    Number.isFinite(timestamp) &&
+    timestamp > Date.now()
+  );
+}
+
+function getPublishStatus(assignment) {
+  return isFuture(
+    assignment?.opens_at,
+  )
+    ? "scheduled"
+    : "open";
+}
+
+function AssignmentStatusBadge({
+  status,
+}) {
+  const normalized =
+    normalizeText(status).toLowerCase() ||
+    "draft";
+
+  const style =
+    STATUS_STYLES[normalized] ||
+    STATUS_STYLES.draft;
+
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${style}`}
+    >
+      {humanizeValue(
+        normalized,
+        "Draft",
+      )}
+    </span>
+  );
+}
+
+function EmptyState({
+  title,
+  description,
+  icon: Icon = ClipboardList,
+}) {
+  return (
+    <div className="flex min-h-72 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">
+      <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-slate-500 shadow-sm">
+        <Icon
+          className="h-6 w-6"
+          aria-hidden="true"
+        />
+      </span>
+
+      <h3 className="mt-4 text-base font-semibold text-slate-950">
+        {title}
+      </h3>
+
+      <p className="mt-2 max-w-md text-sm leading-6 text-slate-600">
+        {description}
+      </p>
+    </div>
+  );
+}
+
+function DetailField({
+  icon: Icon,
+  label,
+  value,
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <div className="flex items-start gap-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-blue-600 shadow-sm">
+          <Icon
+            className="h-4 w-4"
+            aria-hidden="true"
+          />
+        </span>
+
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            {label}
+          </p>
+
+          <p className="mt-1 break-words text-sm font-semibold text-slate-900">
+            {value}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AssignmentListItem({
+  assignment,
+  selected,
+  onSelect,
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() =>
+        onSelect(assignment)
+      }
+      className={`w-full rounded-2xl border p-4 text-left transition ${
+        selected
+          ? "border-blue-300 bg-blue-50 shadow-sm"
+          : "border-slate-200 bg-white hover:border-blue-200 hover:bg-slate-50"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-slate-950">
+            {assignment.title ||
+              "Untitled assignment"}
+          </p>
+
+          <p className="mt-1 truncate text-xs font-medium text-slate-500">
+            {assignment.assignment_number ||
+              "Assignment number pending"}
+          </p>
+        </div>
+
+        <AssignmentStatusBadge
+          status={assignment.status}
+        />
+      </div>
+
+      <div className="mt-4 grid gap-2 text-xs text-slate-600 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+        <span className="flex items-center gap-2">
+          <CalendarClock
+            className="h-3.5 w-3.5 text-slate-400"
+            aria-hidden="true"
+          />
+
+          <span className="truncate">
+            Due{" "}
+            {formatDateTime(
+              assignment.due_at,
+            )}
+          </span>
+        </span>
+
+        <span className="flex items-center gap-2">
+          <Monitor
+            className="h-3.5 w-3.5 text-slate-400"
+            aria-hidden="true"
+          />
+
+          <span className="truncate">
+            {humanizeValue(
+              assignment.delivery_mode,
+              "Delivery not specified",
+            )}
+          </span>
+        </span>
+      </div>
+    </button>
+  );
+}
+
+function getTemplateLabel(
+  assignment,
+  templates = [],
+) {
+  const embeddedTemplate =
+    assignment?.template ||
+    assignment?.assessment_template;
+
+  if (embeddedTemplate) {
+    return (
+      embeddedTemplate.title ||
+      embeddedTemplate.name ||
+      embeddedTemplate.template_name ||
+      embeddedTemplate.code ||
+      "Untitled template"
+    );
+  }
+
+  const template =
+    templates.find(
+      (candidate) =>
+        candidate.id ===
+        assignment?.template_id,
+    );
+
+  return (
+    template?.title ||
+    template?.name ||
+    template?.template_name ||
+    template?.code ||
+    "Template unavailable"
+  );
+}
+
+function ActionButton({
+  icon: Icon,
+  children,
+  onClick,
+  disabled,
+  tone = "default",
+}) {
+  const styles = {
+    default:
+      "border-slate-300 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700",
+    blue:
+      "border-blue-600 bg-blue-600 text-white hover:bg-blue-700",
+    amber:
+      "border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100",
+    red:
+      "border-red-300 bg-red-50 text-red-700 hover:bg-red-100",
+    slate:
+      "border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200",
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${styles[tone]}`}
+    >
+      {disabled ? (
+        <LoaderCircle
+          className="h-4 w-4 animate-spin"
+          aria-hidden="true"
+        />
+      ) : (
+        <Icon
+          className="h-4 w-4"
+          aria-hidden="true"
+        />
+      )}
+
+      {children}
+    </button>
+  );
+}
+
+function LifecycleActions({
+  assignment,
+  canEdit,
+  canPublish,
+  loading,
+  onEdit,
+  onAction,
+}) {
+  const status =
+    normalizeText(
+      assignment?.status,
+    ).toLowerCase() ||
+    "draft";
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <AssignmentStatusBadge
+        status={status}
+      />
+
+      {canEdit &&
+        !["archived", "cancelled"].includes(
+          status,
+        ) && (
+          <ActionButton
+            icon={Pencil}
+            onClick={() =>
+              onEdit?.(assignment)
+            }
+            disabled={loading}
+          >
+            Edit
+          </ActionButton>
+        )}
+
+      {canPublish &&
+        status === "draft" && (
+          <>
+            <ActionButton
+              icon={Play}
+              tone="blue"
+              onClick={() =>
+                onAction("publish")
+              }
+              disabled={loading}
+            >
+              {isFuture(
+                assignment.opens_at,
+              )
+                ? "Schedule"
+                : "Publish"}
+            </ActionButton>
+
+            <ActionButton
+              icon={CircleSlash2}
+              tone="red"
+              onClick={() =>
+                onAction("cancel")
+              }
+              disabled={loading}
+            >
+              Cancel
+            </ActionButton>
+          </>
+        )}
+
+      {canPublish &&
+        status === "scheduled" && (
+          <>
+            <ActionButton
+              icon={Play}
+              tone="blue"
+              onClick={() =>
+                onAction("publishNow")
+              }
+              disabled={loading}
+            >
+              Publish now
+            </ActionButton>
+
+            <ActionButton
+              icon={CircleSlash2}
+              tone="red"
+              onClick={() =>
+                onAction("cancel")
+              }
+              disabled={loading}
+            >
+              Cancel
+            </ActionButton>
+          </>
+        )}
+
+      {canPublish &&
+        status === "open" && (
+          <ActionButton
+            icon={LockKeyhole}
+            tone="amber"
+            onClick={() =>
+              onAction("close")
+            }
+            disabled={loading}
+          >
+            Close
+          </ActionButton>
+        )}
+
+      {canPublish &&
+        ["closed", "completed"].includes(
+          status,
+        ) && (
+          <>
+            <ActionButton
+              icon={RotateCcw}
+              tone="blue"
+              onClick={() =>
+                onAction("reopen")
+              }
+              disabled={loading}
+            >
+              Reopen
+            </ActionButton>
+
+            <ActionButton
+              icon={Archive}
+              tone="slate"
+              onClick={() =>
+                onAction("archive")
+              }
+              disabled={loading}
+            >
+              Archive
+            </ActionButton>
+          </>
+        )}
+
+      {canPublish &&
+        status === "cancelled" && (
+          <ActionButton
+            icon={Archive}
+            tone="slate"
+            onClick={() =>
+              onAction("archive")
+            }
+            disabled={loading}
+          >
+            Archive
+          </ActionButton>
+        )}
+    </div>
+  );
+}
+
+function ConfirmationDialog({
+  action,
+  assignment,
+  loading,
+  error,
+  onClose,
+  onConfirm,
+}) {
+  if (!action) {
+    return null;
+  }
+
+  const config =
+    ACTIONS[action];
+
+  if (!config) {
+    return null;
+  }
+
+  const Icon =
+    config.icon;
+
+  const toneStyles = {
+    blue:
+      "bg-blue-100 text-blue-700",
+    amber:
+      "bg-amber-100 text-amber-700",
+    red:
+      "bg-red-100 text-red-700",
+    slate:
+      "bg-slate-200 text-slate-700",
+  };
+
+  const buttonStyles = {
+    blue:
+      "bg-blue-600 hover:bg-blue-700",
+    amber:
+      "bg-amber-600 hover:bg-amber-700",
+    red:
+      "bg-red-600 hover:bg-red-700",
+    slate:
+      "bg-slate-700 hover:bg-slate-800",
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (
+          event.target ===
+          event.currentTarget &&
+          !loading
+        ) {
+          onClose();
+        }
+      }}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="assignment-lifecycle-title"
+        className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white shadow-2xl"
+      >
+        <header className="flex items-start justify-between gap-4 border-b border-slate-200 p-5 sm:p-6">
+          <div className="flex items-start gap-4">
+            <span
+              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${toneStyles[config.tone]}`}
+            >
+              <Icon
+                className="h-5 w-5"
+                aria-hidden="true"
+              />
+            </span>
+
+            <div>
+              <h2
+                id="assignment-lifecycle-title"
+                className="text-lg font-semibold text-slate-950"
+              >
+                {config.title}
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                {assignment?.title ||
+                  "Selected assignment"}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="rounded-xl p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 disabled:opacity-50"
+            aria-label="Close confirmation"
+          >
+            <X
+              className="h-5 w-5"
+              aria-hidden="true"
+            />
+          </button>
+        </header>
+
+        <div className="p-5 sm:p-6">
+          <p className="text-sm leading-6 text-slate-700">
+            {config.description}
+          </p>
+
+          {action === "publish" &&
+            isFuture(
+              assignment?.opens_at,
+            ) && (
+              <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                <p className="text-sm font-semibold text-amber-900">
+                  Scheduled opening
+                </p>
+
+                <p className="mt-1 text-sm text-amber-800">
+                  This assignment will be marked scheduled and will open on{" "}
+                  {formatDateTime(
+                    assignment.opens_at,
+                  )}.
+                </p>
+              </div>
+            )}
+
+          {error && (
+            <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
+              {error}
+            </div>
+          )}
+        </div>
+
+        <footer className="flex flex-col-reverse gap-3 border-t border-slate-200 p-5 sm:flex-row sm:justify-end sm:p-6">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+          >
+            Keep current status
+          </button>
+
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={loading}
+            className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${buttonStyles[config.tone]}`}
+          >
+            {loading ? (
+              <LoaderCircle
+                className="h-4 w-4 animate-spin"
+                aria-hidden="true"
+              />
+            ) : (
+              <Icon
+                className="h-4 w-4"
+                aria-hidden="true"
+              />
+            )}
+
+            {config.confirmLabel}
+          </button>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+function AssignmentDetails({
+  assignment,
+  templates,
+  loading,
+  error,
+  mutationLoading,
+  mutationError,
+  canEdit,
+  canPublish,
+  onEdit,
+  onAction,
+}) {
+  if (
+    loading &&
+    !assignment
+  ) {
+    return (
+      <div className="flex min-h-96 items-center justify-center rounded-2xl border border-slate-200 bg-white">
+        <div className="text-center">
+          <LoaderCircle
+            className="mx-auto h-7 w-7 animate-spin text-blue-600"
+            aria-hidden="true"
+          />
+
+          <p className="mt-3 text-sm font-medium text-slate-600">
+            Loading assignment details…
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (
+    error &&
+    !assignment
+  ) {
+    return (
+      <section className="rounded-2xl border border-red-200 bg-red-50 p-5">
+        <p className="text-sm font-semibold text-red-800">
+          Assignment details could not be loaded
+        </p>
+
+        <p className="mt-2 text-sm leading-6 text-red-700">
+          {error}
+        </p>
+      </section>
+    );
+  }
+
+  if (!assignment) {
+    return (
+      <EmptyState
+        icon={FileText}
+        title="Select an assignment"
+        description="Choose an assessment assignment from the list to review its schedule, delivery settings, attempt rules, and lifecycle status."
+      />
+    );
+  }
+
+  return (
+    <article className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <header className="border-b border-slate-200 p-5 sm:p-6">
+        <div className="flex flex-col gap-4">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-blue-700">
+              {assignment.assignment_number ||
+                "Assessment assignment"}
+            </p>
+
+            <h2 className="mt-1 break-words text-xl font-semibold tracking-tight text-slate-950">
+              {assignment.title ||
+                "Untitled assignment"}
+            </h2>
+
+            {assignment.description && (
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
+                {assignment.description}
+              </p>
+            )}
+          </div>
+
+          <LifecycleActions
+            assignment={assignment}
+            canEdit={canEdit}
+            canPublish={canPublish}
+            loading={mutationLoading}
+            onEdit={onEdit}
+            onAction={onAction}
+          />
+        </div>
+      </header>
+
+      {(error ||
+        mutationError) && (
+        <div className="border-b border-red-200 bg-red-50 px-5 py-4 sm:px-6">
+          <p className="text-sm font-medium text-red-700">
+            {mutationError ||
+              error}
+          </p>
+        </div>
+      )}
+
+      <div className="space-y-6 p-5 sm:p-6">
+        <section>
+          <h3 className="text-sm font-semibold text-slate-950">
+            Schedule
+          </h3>
+
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <DetailField
+              icon={CalendarClock}
+              label="Opens"
+              value={formatDateTime(
+                assignment.opens_at,
+              )}
+            />
+
+            <DetailField
+              icon={Clock3}
+              label="Due"
+              value={formatDateTime(
+                assignment.due_at,
+              )}
+            />
+
+            <DetailField
+              icon={CheckCircle2}
+              label="Closes"
+              value={formatDateTime(
+                assignment.closes_at,
+              )}
+            />
+          </div>
+        </section>
+
+        <section>
+          <h3 className="text-sm font-semibold text-slate-950">
+            Lifecycle
+          </h3>
+
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <DetailField
+              icon={Play}
+              label="Published"
+              value={formatDateTime(
+                assignment.published_at,
+              )}
+            />
+
+            <DetailField
+              icon={CircleSlash2}
+              label="Cancelled"
+              value={formatDateTime(
+                assignment.cancelled_at,
+              )}
+            />
+
+            <DetailField
+              icon={Archive}
+              label="Archived"
+              value={formatDateTime(
+                assignment.archived_at,
+              )}
+            />
+          </div>
+        </section>
+
+        <section>
+          <h3 className="text-sm font-semibold text-slate-950">
+            Delivery configuration
+          </h3>
+
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <DetailField
+              icon={Monitor}
+              label="Delivery mode"
+              value={humanizeValue(
+                assignment.delivery_mode,
+              )}
+            />
+
+            <DetailField
+              icon={ShieldCheck}
+              label="Proctoring"
+              value={humanizeValue(
+                assignment.proctoring_mode,
+              )}
+            />
+
+            <DetailField
+              icon={Clock3}
+              label="Duration"
+              value={
+                assignment.duration_minutes
+                  ? `${formatNumber(
+                      assignment.duration_minutes,
+                    )} minutes`
+                  : "No time limit"
+              }
+            />
+          </div>
+        </section>
+
+        <section>
+          <h3 className="text-sm font-semibold text-slate-950">
+            Attempt and scoring rules
+          </h3>
+
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <DetailField
+              icon={Users}
+              label="Maximum attempts"
+              value={formatNumber(
+                assignment.maximum_attempts ??
+                  assignment.max_attempts,
+                "Not specified",
+              )}
+            />
+
+            <DetailField
+              icon={CheckCircle2}
+              label="Passing percentage"
+              value={
+                assignment.passing_percentage !==
+                  null &&
+                assignment.passing_percentage !==
+                  undefined
+                  ? `${formatNumber(
+                      assignment.passing_percentage,
+                    )}%`
+                  : "Not specified"
+              }
+            />
+
+            <DetailField
+              icon={ClipboardList}
+              label="Passing score"
+              value={formatNumber(
+                assignment.passing_score,
+              )}
+            />
+          </div>
+        </section>
+
+        <section>
+          <h3 className="text-sm font-semibold text-slate-950">
+            Source
+          </h3>
+
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <DetailField
+              icon={FileText}
+              label="Source type"
+              value={humanizeValue(
+                assignment.source_type,
+                "Template",
+              )}
+            />
+
+            <DetailField
+              icon={ClipboardList}
+              label="Template"
+              value={getTemplateLabel(
+                assignment,
+                templates,
+              )}
+            />
+          </div>
+        </section>
+      </div>
+    </article>
+  );
+}
+
+export default function AssessmentAssignmentWorkspace() {
+  const {
+    templates,
+    assignments,
+    assignmentResult,
+    assignmentFilters,
+
+    assignmentsLoading,
+    assignmentsError,
+
+    assignmentMutationLoading,
+    assignmentMutationError,
+
+    selectedAssignmentId,
+    selectedAssignment,
+    selectedAssignmentLoading,
+    selectedAssignmentError,
+
+    canCreateAssignments,
+    canUpdateAssignments,
+    canPublishAssessments,
+
+    selectAssignment,
+    updateAssignmentFilters,
+    refreshAssignments,
+    refreshSelectedAssignment,
+    updateAssignment,
+    clearAssignmentMutationError,
+  } = useAssessment();
+
+  const [
+    assignmentDialog,
+    setAssignmentDialog,
+  ] = useState({
+    open: false,
+    mode: "create",
+    assignment: null,
+  });
+
+  const [
+    lifecycleAction,
+    setLifecycleAction,
+  ] = useState(null);
+
+  const [
+    lifecycleError,
+    setLifecycleError,
+  ] = useState("");
+
+  const openCreateAssignmentDialog =
+    () => {
+      setAssignmentDialog({
+        open: true,
+        mode: "create",
+        assignment: null,
+      });
+    };
+
+  const openEditAssignmentDialog =
+    (assignment) => {
+      if (!assignment?.id) {
+        return;
+      }
+
+      setAssignmentDialog({
+        open: true,
+        mode: "edit",
+        assignment,
+      });
+    };
+
+  const closeAssignmentDialog =
+    () => {
+      setAssignmentDialog(
+        (current) => ({
+          ...current,
+          open: false,
+        }),
+      );
+    };
+
+  const handleAssignmentSaved =
+    (assignment) => {
+      if (assignment?.id) {
+        selectAssignment(assignment);
+      }
+    };
+
+  const openLifecycleAction =
+    (action) => {
+      if (
+        !selectedAssignment?.id ||
+        !ACTIONS[action]
+      ) {
+        return;
+      }
+
+      clearAssignmentMutationError?.();
+      setLifecycleError("");
+      setLifecycleAction(action);
+    };
+
+  const closeLifecycleAction =
+    () => {
+      if (
+        assignmentMutationLoading
+      ) {
+        return;
+      }
+
+      setLifecycleAction(null);
+      setLifecycleError("");
+    };
+
+  const buildLifecycleUpdates =
+    (action) => {
+      const now =
+        new Date().toISOString();
+
+      switch (action) {
+        case "publish":
+          return {
+            status:
+              getPublishStatus(
+                selectedAssignment,
+              ),
+            published_at:
+              selectedAssignment.published_at ||
+              now,
+            cancelled_at: null,
+            cancelled_by: null,
+            archived_at: null,
+            archived_by: null,
+          };
+
+        case "publishNow":
+          return {
+            status: "open",
+            opens_at: now,
+            published_at:
+              selectedAssignment.published_at ||
+              now,
+            cancelled_at: null,
+            cancelled_by: null,
+            archived_at: null,
+            archived_by: null,
+          };
+
+        case "close":
+          return {
+            status: "closed",
+          };
+
+        case "reopen":
+          return {
+            status: "open",
+            archived_at: null,
+            archived_by: null,
+            cancelled_at: null,
+            cancelled_by: null,
+          };
+
+        case "cancel":
+          return {
+            status: "cancelled",
+            cancelled_at: now,
+          };
+
+        case "archive":
+          return {
+            status: "archived",
+            archived_at: now,
+          };
+
+        default:
+          throw new Error(
+            "Unsupported assignment lifecycle action.",
+          );
+      }
+    };
+
+  const confirmLifecycleAction =
+    async () => {
+      if (
+        !lifecycleAction ||
+        !selectedAssignment?.id
+      ) {
+        return;
+      }
+
+      setLifecycleError("");
+
+      try {
+        const updated =
+          await updateAssignment(
+            selectedAssignment.id,
+            buildLifecycleUpdates(
+              lifecycleAction,
+            ),
+          );
+
+        if (updated?.id) {
+          selectAssignment(updated);
+        }
+
+        await Promise.all([
+          refreshAssignments(),
+          refreshSelectedAssignment(
+            selectedAssignment.id,
+          ),
+        ]);
+
+        setLifecycleAction(null);
+      } catch (error) {
+        setLifecycleError(
+          getErrorMessage(
+            error,
+            "Unable to update the assignment lifecycle.",
+          ),
+        );
+      }
+    };
+
+  const page =
+    assignmentResult?.page ||
+    assignmentFilters.page ||
+    1;
+
+  const totalPages =
+    assignmentResult?.totalPages ||
+    0;
+
+  const count =
+    assignmentResult?.count ||
+    0;
+
+  const rangeLabel =
+    useMemo(() => {
+      if (!count) {
+        return "0 assignments";
+      }
+
+      const pageSize =
+        assignmentResult?.pageSize ||
+        assignmentFilters.pageSize ||
+        20;
+
+      const start =
+        (page - 1) *
+          pageSize +
+        1;
+
+      const end =
+        Math.min(
+          count,
+          page * pageSize,
+        );
+
+      return `${start}–${end} of ${count}`;
+    }, [
+      count,
+      page,
+      assignmentResult?.pageSize,
+      assignmentFilters.pageSize,
+    ]);
+
+  const handlePreviousPage =
+    () => {
+      if (page <= 1) {
+        return;
+      }
+
+      updateAssignmentFilters({
+        page: page - 1,
+      });
+    };
+
+  const handleNextPage =
+    () => {
+      if (
+        !totalPages ||
+        page >= totalPages
+      ) {
+        return;
+      }
+
+      updateAssignmentFilters({
+        page: page + 1,
+      });
+    };
+
+  return (
+    <div className="space-y-5">
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-blue-700">
+              Assessment runtime
+            </p>
+
+            <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-950">
+              Assignment management
+            </h2>
+
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+              Schedule published assessment templates, manage delivery rules, and control the complete assignment lifecycle.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                refreshAssignments()
+              }
+              disabled={
+                assignmentsLoading
+              }
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${
+                  assignmentsLoading
+                    ? "animate-spin"
+                    : ""
+                }`}
+                aria-hidden="true"
+              />
+
+              Refresh
+            </button>
+
+            {canCreateAssignments && (
+              <button
+                type="button"
+                onClick={
+                  openCreateAssignmentDialog
+                }
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+              >
+                <Plus
+                  className="h-4 w-4"
+                  aria-hidden="true"
+                />
+
+                New assignment
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
+          <label className="relative block">
+            <span className="sr-only">
+              Search assessment assignments
+            </span>
+
+            <Search
+              className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+              aria-hidden="true"
+            />
+
+            <input
+              type="search"
+              value={
+                assignmentFilters.search
+              }
+              onChange={(event) =>
+                updateAssignmentFilters({
+                  search:
+                    event.target.value,
+                })
+              }
+              placeholder="Search by assignment title or number"
+              className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+            />
+          </label>
+
+          <label>
+            <span className="sr-only">
+              Filter assignments by status
+            </span>
+
+            <select
+              value={
+                assignmentFilters.status
+              }
+              onChange={(event) =>
+                updateAssignmentFilters({
+                  status:
+                    event.target.value,
+                })
+              }
+              className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+            >
+              {ASSIGNMENT_STATUS_OPTIONS.map(
+                (option) => (
+                  <option
+                    key={
+                      option.value ||
+                      "all"
+                    }
+                    value={
+                      option.value
+                    }
+                  >
+                    {option.label}
+                  </option>
+                ),
+              )}
+            </select>
+          </label>
+        </div>
+      </section>
+
+      {assignmentsError && (
+        <section className="rounded-2xl border border-red-200 bg-red-50 p-5">
+          <p className="text-sm font-semibold text-red-800">
+            Assessment assignments could not be loaded
+          </p>
+
+          <p className="mt-2 text-sm leading-6 text-red-700">
+            {assignmentsError}
+          </p>
+        </section>
+      )}
+
+      <section className="grid min-w-0 gap-5 lg:grid-cols-[minmax(280px,0.85fr)_minmax(0,1.65fr)]">
+        <aside className="min-w-0 rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <header className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-4">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-950">
+                Assignments
+              </h3>
+
+              <p className="mt-1 text-xs text-slate-500">
+                {rangeLabel}
+              </p>
+            </div>
+
+            {assignmentsLoading && (
+              <LoaderCircle
+                className="h-5 w-5 animate-spin text-blue-600"
+                aria-label="Loading assignments"
+              />
+            )}
+          </header>
+
+          <div className="space-y-3 p-3">
+            {!assignmentsLoading &&
+              assignments.length === 0 && (
+                <EmptyState
+                  title="No assignments found"
+                  description="There are no assessment assignments matching the current filters."
+                />
+              )}
+
+            {assignments.map(
+              (assignment) => (
+                <AssignmentListItem
+                  key={assignment.id}
+                  assignment={assignment}
+                  selected={
+                    assignment.id ===
+                    selectedAssignmentId
+                  }
+                  onSelect={
+                    selectAssignment
+                  }
+                />
+              ),
+            )}
+          </div>
+
+          <footer className="flex items-center justify-between gap-3 border-t border-slate-200 px-4 py-3">
+            <button
+              type="button"
+              onClick={
+                handlePreviousPage
+              }
+              disabled={
+                page <= 1 ||
+                assignmentsLoading
+              }
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <ChevronLeft
+                className="h-3.5 w-3.5"
+                aria-hidden="true"
+              />
+
+              Previous
+            </button>
+
+            <span className="text-xs font-semibold text-slate-500">
+              Page {page}
+              {totalPages
+                ? ` of ${totalPages}`
+                : ""}
+            </span>
+
+            <button
+              type="button"
+              onClick={
+                handleNextPage
+              }
+              disabled={
+                !totalPages ||
+                page >= totalPages ||
+                assignmentsLoading
+              }
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Next
+
+              <ChevronRight
+                className="h-3.5 w-3.5"
+                aria-hidden="true"
+              />
+            </button>
+          </footer>
+        </aside>
+
+        <div className="min-w-0">
+          <AssignmentDetails
+            assignment={
+              selectedAssignment
+            }
+            templates={templates}
+            loading={
+              selectedAssignmentLoading
+            }
+            error={
+              selectedAssignmentError
+            }
+            mutationLoading={
+              assignmentMutationLoading
+            }
+            mutationError={
+              assignmentMutationError
+            }
+            canEdit={
+              canUpdateAssignments
+            }
+            canPublish={
+              canPublishAssessments
+            }
+            onEdit={
+              openEditAssignmentDialog
+            }
+            onAction={
+              openLifecycleAction
+            }
+          />
+        </div>
+      </section>
+
+      <AssessmentAssignmentDialog
+        open={
+          assignmentDialog.open
+        }
+        mode={
+          assignmentDialog.mode
+        }
+        assignment={
+          assignmentDialog.assignment
+        }
+        onClose={
+          closeAssignmentDialog
+        }
+        onSaved={
+          handleAssignmentSaved
+        }
+      />
+
+      <ConfirmationDialog
+        action={
+          lifecycleAction
+        }
+        assignment={
+          selectedAssignment
+        }
+        loading={
+          assignmentMutationLoading
+        }
+        error={
+          lifecycleError
+        }
+        onClose={
+          closeLifecycleAction
+        }
+        onConfirm={
+          confirmLifecycleAction
+        }
+      />
+    </div>
+  );
+}

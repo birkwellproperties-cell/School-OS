@@ -1,4 +1,4 @@
-﻿alter table public.assessment_questions
+alter table public.assessment_questions
 drop constraint if exists assessment_questions_archive_consistency;
 
 alter table public.assessment_questions

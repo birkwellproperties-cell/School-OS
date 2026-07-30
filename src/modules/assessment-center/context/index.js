@@ -26,3 +26,7 @@ export {
 export {
   useAssessmentTemplateState,
 } from "./useAssessmentTemplateState";
+
+export {
+  useStudentAssessmentState,
+} from "./useStudentAssessmentState";
