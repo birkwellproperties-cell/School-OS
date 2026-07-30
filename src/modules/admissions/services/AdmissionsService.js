@@ -5583,6 +5583,937 @@ async deleteApplicationDocument(
       .getEnrollmentConversion(id);
   }
 
+  async createEnrollmentConversion(
+    payload = {},
+  ) {
+    requireIdentifier(
+      payload.application_id,
+      "Application id",
+    );
+
+    requireIdentifier(
+      payload.decision_id,
+      "Decision id",
+    );
+
+    requireIdentifier(
+      payload.offer_id,
+      "Offer id",
+    );
+
+    requireIdentifier(
+      payload.requested_by,
+      "Enrollment requester id",
+    );
+
+    const application =
+      await this.repository
+        .getApplication(
+          payload.application_id,
+        );
+
+    if (!application) {
+      throw new Error(
+        "The admission application could not be found.",
+      );
+    }
+
+    const decision =
+      await this.repository
+        .getDecision(
+          payload.decision_id,
+        );
+
+    if (!decision) {
+      throw new Error(
+        "The admission decision could not be found.",
+      );
+    }
+
+    const offer =
+      await this.repository
+        .getOffer(
+          payload.offer_id,
+        );
+
+    if (!offer) {
+      throw new Error(
+        "The admission offer could not be found.",
+      );
+    }
+
+    if (
+      offer.status !==
+      "accepted"
+    ) {
+      throw new Error(
+        "Only an accepted admission offer can be converted to enrollment.",
+      );
+    }
+
+    if (
+      decision.id !==
+        offer.decision_id ||
+      decision.application_id !==
+        application.id ||
+      offer.application_id !==
+        application.id
+    ) {
+      throw new Error(
+        "The application, decision, and offer do not belong to the same admissions workflow.",
+      );
+    }
+
+    const targetGradeLevel =
+      normalizeRequiredText(
+        payload.target_grade_level ??
+          offer.entry_grade_level ??
+          application.entry_grade_level,
+        "Target grade level",
+      );
+
+    const enrollmentStartDate =
+      normalizeOptionalDate(
+        payload.enrollment_start_date ??
+          offer.intended_start_date ??
+          application.intended_start_date,
+        "Enrollment start date",
+      );
+
+    if (!enrollmentStartDate) {
+      throw new Error(
+        "Enrollment start date is required.",
+      );
+    }
+
+    return this.repository
+      .createEnrollmentConversion({
+        organization_id:
+          application.organization_id ??
+          this.scope.organizationId,
+
+        school_id:
+          application.school_id ??
+          this.scope.schoolId,
+
+        campus_id:
+          application.campus_id ??
+          this.scope.campusId ??
+          null,
+
+        admission_cycle_id:
+          application.admission_cycle_id ??
+          this.scope.admissionCycleId,
+
+        application_id:
+          application.id,
+
+        applicant_id:
+          application.applicant_id,
+
+        decision_id:
+          decision.id,
+
+        offer_id:
+          offer.id,
+
+        status:
+          "pending",
+
+        target_grade_level:
+          targetGradeLevel,
+
+        enrollment_start_date:
+          enrollmentStartDate,
+
+        validation_errors:
+          [],
+
+        requested_at:
+          new Date()
+            .toISOString(),
+
+        requested_by:
+          payload.requested_by,
+
+        metadata:
+          payload.metadata &&
+          typeof payload.metadata ===
+            "object" &&
+          !Array.isArray(
+            payload.metadata,
+          )
+            ? payload.metadata
+            : {},
+
+        created_by:
+          payload.requested_by,
+
+        updated_by:
+          payload.requested_by,
+      });
+  }
+
+  async updateEnrollmentConversion(
+    conversionId,
+    updates = {},
+  ) {
+    requireIdentifier(
+      conversionId,
+      "Enrollment conversion id",
+    );
+
+    const conversion =
+      await this.repository
+        .getEnrollmentConversion(
+          conversionId,
+        );
+
+    if (!conversion) {
+      throw new Error(
+        "The enrollment conversion could not be found.",
+      );
+    }
+
+    if (
+      ![
+        "pending",
+        "validating",
+        "ready",
+      ].includes(
+        conversion.status,
+      )
+    ) {
+      throw new Error(
+        "This enrollment conversion can no longer be edited.",
+      );
+    }
+
+    const normalized = {};
+
+    if (
+      updates.target_grade_level !==
+      undefined
+    ) {
+      normalized.target_grade_level =
+        normalizeRequiredText(
+          updates.target_grade_level,
+          "Target grade level",
+        );
+    }
+
+    if (
+      updates.enrollment_start_date !==
+      undefined
+    ) {
+      normalized.enrollment_start_date =
+        normalizeOptionalDate(
+          updates.enrollment_start_date,
+          "Enrollment start date",
+        );
+
+      if (
+        !normalized
+          .enrollment_start_date
+      ) {
+        throw new Error(
+          "Enrollment start date is required.",
+        );
+      }
+    }
+
+    if (
+      updates.metadata !==
+      undefined
+    ) {
+      if (
+        !updates.metadata ||
+        typeof updates.metadata !==
+          "object" ||
+        Array.isArray(
+          updates.metadata,
+        )
+      ) {
+        throw new Error(
+          "Enrollment metadata must be an object.",
+        );
+      }
+
+      normalized.metadata =
+        updates.metadata;
+    }
+
+    if (updates.actorId) {
+      normalized.updated_by =
+        updates.actorId;
+    }
+
+    return this.repository
+      .updateEnrollmentConversion(
+        conversionId,
+        normalized,
+      );
+  }
+
+  async validateEnrollmentConversion(
+    conversionId,
+    {
+      actorId,
+    } = {},
+  ) {
+    requireIdentifier(
+      conversionId,
+      "Enrollment conversion id",
+    );
+
+    requireIdentifier(
+      actorId,
+      "Enrollment validator id",
+    );
+
+    const conversion =
+      await this.repository
+        .getEnrollmentConversion(
+          conversionId,
+        );
+
+    if (!conversion) {
+      throw new Error(
+        "The enrollment conversion could not be found.",
+      );
+    }
+
+    if (
+      ![
+        "pending",
+        "validating",
+        "failed",
+      ].includes(
+        conversion.status,
+      )
+    ) {
+      throw new Error(
+        "This enrollment conversion cannot be validated from its current status.",
+      );
+    }
+
+    const errors = [];
+
+    const application =
+      await this.repository
+        .getApplication(
+          conversion.application_id,
+        );
+
+    const decision =
+      await this.repository
+        .getDecision(
+          conversion.decision_id,
+        );
+
+    const offer =
+      await this.repository
+        .getOffer(
+          conversion.offer_id,
+        );
+
+    if (!application) {
+      errors.push(
+        "Admission application not found.",
+      );
+    }
+
+    if (!decision) {
+      errors.push(
+        "Admission decision not found.",
+      );
+    }
+
+    if (!offer) {
+      errors.push(
+        "Admission offer not found.",
+      );
+    }
+
+    if (
+      offer &&
+      offer.status !==
+        "accepted"
+    ) {
+      errors.push(
+        "Admission offer has not been accepted.",
+      );
+    }
+
+    if (
+      application &&
+      decision &&
+      decision.application_id !==
+        application.id
+    ) {
+      errors.push(
+        "Admission decision does not match the application.",
+      );
+    }
+
+    if (
+      application &&
+      offer &&
+      offer.application_id !==
+        application.id
+    ) {
+      errors.push(
+        "Admission offer does not match the application.",
+      );
+    }
+
+    if (
+      decision &&
+      offer &&
+      offer.decision_id !==
+        decision.id
+    ) {
+      errors.push(
+        "Admission offer does not match the decision.",
+      );
+    }
+
+    if (
+      !normalizeOptionalText(
+        conversion.target_grade_level,
+      )
+    ) {
+      errors.push(
+        "Target grade level is required.",
+      );
+    }
+
+    if (
+      !normalizeOptionalDate(
+        conversion.enrollment_start_date,
+        "Enrollment start date",
+      )
+    ) {
+      errors.push(
+        "Enrollment start date is required.",
+      );
+    }
+
+    return this.repository
+      .updateEnrollmentConversion(
+        conversionId,
+        {
+          status:
+            errors.length > 0
+              ? "validating"
+              : "ready",
+
+          validation_errors:
+            errors,
+
+          failure_reason:
+            null,
+
+          failed_at:
+            null,
+
+          updated_by:
+            actorId,
+        },
+      );
+  }
+
+  async markEnrollmentReady(
+    conversionId,
+    {
+      actorId,
+    } = {},
+  ) {
+    requireIdentifier(
+      conversionId,
+      "Enrollment conversion id",
+    );
+
+    requireIdentifier(
+      actorId,
+      "Enrollment validator id",
+    );
+
+    const conversion =
+      await this.repository
+        .getEnrollmentConversion(
+          conversionId,
+        );
+
+    if (!conversion) {
+      throw new Error(
+        "The enrollment conversion could not be found.",
+      );
+    }
+
+    if (
+      ![
+        "pending",
+        "validating",
+      ].includes(
+        conversion.status,
+      )
+    ) {
+      throw new Error(
+        "Only a pending or validating enrollment conversion can be marked ready.",
+      );
+    }
+
+    if (
+      Array.isArray(
+        conversion.validation_errors,
+      ) &&
+      conversion
+        .validation_errors
+        .length > 0
+    ) {
+      throw new Error(
+        "Resolve all enrollment validation errors before marking the conversion ready.",
+      );
+    }
+
+    return this.repository
+      .updateEnrollmentConversion(
+        conversionId,
+        {
+          status:
+            "ready",
+
+          validation_errors:
+            [],
+
+          updated_by:
+            actorId,
+        },
+      );
+  }
+
+  async startEnrollmentProcessing(
+    conversionId,
+    {
+      actorId,
+    } = {},
+  ) {
+    requireIdentifier(
+      conversionId,
+      "Enrollment conversion id",
+    );
+
+    requireIdentifier(
+      actorId,
+      "Enrollment processor id",
+    );
+
+    const conversion =
+      await this.repository
+        .getEnrollmentConversion(
+          conversionId,
+        );
+
+    if (!conversion) {
+      throw new Error(
+        "The enrollment conversion could not be found.",
+      );
+    }
+
+    if (
+      conversion.status !==
+      "ready"
+    ) {
+      throw new Error(
+        "Only a ready enrollment conversion can begin processing.",
+      );
+    }
+
+    return this.repository
+      .updateEnrollmentConversion(
+        conversionId,
+        {
+          status:
+            "processing",
+
+          processing_started_at:
+            new Date()
+              .toISOString(),
+
+          updated_by:
+            actorId,
+        },
+      );
+  }
+
+  async completeEnrollmentConversion(
+    conversionId,
+    {
+      actorId,
+      studentId,
+      enrollmentId,
+    } = {},
+  ) {
+    requireIdentifier(
+      conversionId,
+      "Enrollment conversion id",
+    );
+
+    requireIdentifier(
+      actorId,
+      "Enrollment completer id",
+    );
+
+    requireIdentifier(
+      studentId,
+      "Student id",
+    );
+
+    requireIdentifier(
+      enrollmentId,
+      "Enrollment id",
+    );
+
+    const conversion =
+      await this.repository
+        .getEnrollmentConversion(
+          conversionId,
+        );
+
+    if (!conversion) {
+      throw new Error(
+        "The enrollment conversion could not be found.",
+      );
+    }
+
+    if (
+      conversion.status !==
+      "processing"
+    ) {
+      throw new Error(
+        "Only a processing enrollment conversion can be completed.",
+      );
+    }
+
+    const completedAt =
+      new Date()
+        .toISOString();
+
+    const updatedConversion =
+      await this.repository
+        .updateEnrollmentConversion(
+          conversionId,
+          {
+            status:
+              "completed",
+
+            student_id:
+              studentId,
+
+            enrollment_id:
+              enrollmentId,
+
+            completed_at:
+              completedAt,
+
+            completed_by:
+              actorId,
+
+            validation_errors:
+              [],
+
+            updated_by:
+              actorId,
+          },
+        );
+
+    await Promise.all([
+      this.repository
+        .updateApplication(
+          conversion.application_id,
+          {
+            status:
+              "enrolled",
+
+            updated_by:
+              actorId,
+          },
+        ),
+
+      this.repository
+        .updateApplicant(
+          conversion.applicant_id,
+          {
+            status:
+              "enrolled",
+
+            updated_by:
+              actorId,
+          },
+        ),
+    ]);
+
+    return updatedConversion;
+  }
+
+  async failEnrollmentConversion(
+    conversionId,
+    {
+      actorId,
+      failureReason,
+      validationErrors = [],
+    } = {},
+  ) {
+    requireIdentifier(
+      conversionId,
+      "Enrollment conversion id",
+    );
+
+    requireIdentifier(
+      actorId,
+      "Enrollment processor id",
+    );
+
+    const normalizedReason =
+      normalizeOptionalText(
+        failureReason,
+      );
+
+    if (!normalizedReason) {
+      throw new Error(
+        "An enrollment failure reason is required.",
+      );
+    }
+
+    const conversion =
+      await this.repository
+        .getEnrollmentConversion(
+          conversionId,
+        );
+
+    if (!conversion) {
+      throw new Error(
+        "The enrollment conversion could not be found.",
+      );
+    }
+
+    if (
+      ![
+        "pending",
+        "validating",
+        "ready",
+        "processing",
+      ].includes(
+        conversion.status,
+      )
+    ) {
+      throw new Error(
+        "This enrollment conversion can no longer be marked failed.",
+      );
+    }
+
+    return this.repository
+      .updateEnrollmentConversion(
+        conversionId,
+        {
+          status:
+            "failed",
+
+          failed_at:
+            new Date()
+              .toISOString(),
+
+          failure_reason:
+            normalizedReason,
+
+          validation_errors:
+            Array.isArray(
+              validationErrors,
+            )
+              ? validationErrors
+              : [],
+
+          updated_by:
+            actorId,
+        },
+      );
+  }
+
+  async cancelEnrollmentConversion(
+    conversionId,
+    {
+      actorId,
+      cancellationReason,
+    } = {},
+  ) {
+    requireIdentifier(
+      conversionId,
+      "Enrollment conversion id",
+    );
+
+    requireIdentifier(
+      actorId,
+      "Enrollment canceller id",
+    );
+
+    const normalizedReason =
+      normalizeOptionalText(
+        cancellationReason,
+      );
+
+    if (!normalizedReason) {
+      throw new Error(
+        "An enrollment cancellation reason is required.",
+      );
+    }
+
+    const conversion =
+      await this.repository
+        .getEnrollmentConversion(
+          conversionId,
+        );
+
+    if (!conversion) {
+      throw new Error(
+        "The enrollment conversion could not be found.",
+      );
+    }
+
+    if (
+      ![
+        "pending",
+        "validating",
+        "ready",
+        "processing",
+        "failed",
+      ].includes(
+        conversion.status,
+      )
+    ) {
+      throw new Error(
+        "This enrollment conversion can no longer be cancelled.",
+      );
+    }
+
+    return this.repository
+      .updateEnrollmentConversion(
+        conversionId,
+        {
+          status:
+            "cancelled",
+
+          cancelled_at:
+            new Date()
+              .toISOString(),
+
+          cancellation_reason:
+            normalizedReason,
+
+          updated_by:
+            actorId,
+        },
+      );
+  }
+
+  async reverseEnrollmentConversion(
+    conversionId,
+    {
+      actorId,
+      reversalReason,
+    } = {},
+  ) {
+    requireIdentifier(
+      conversionId,
+      "Enrollment conversion id",
+    );
+
+    requireIdentifier(
+      actorId,
+      "Enrollment reversal actor id",
+    );
+
+    const normalizedReason =
+      normalizeOptionalText(
+        reversalReason,
+      );
+
+    if (!normalizedReason) {
+      throw new Error(
+        "An enrollment reversal reason is required.",
+      );
+    }
+
+    const conversion =
+      await this.repository
+        .getEnrollmentConversion(
+          conversionId,
+        );
+
+    if (!conversion) {
+      throw new Error(
+        "The enrollment conversion could not be found.",
+      );
+    }
+
+    if (
+      conversion.status !==
+      "completed"
+    ) {
+      throw new Error(
+        "Only a completed enrollment conversion can be reversed.",
+      );
+    }
+
+    const reversedConversion =
+      await this.repository
+        .updateEnrollmentConversion(
+          conversionId,
+          {
+            status:
+              "reversed",
+
+            reversed_at:
+              new Date()
+                .toISOString(),
+
+            reversal_reason:
+              normalizedReason,
+
+            updated_by:
+              actorId,
+          },
+        );
+
+    await Promise.all([
+      this.repository
+        .updateApplication(
+          conversion.application_id,
+          {
+            status:
+              "offer_accepted",
+
+            updated_by:
+              actorId,
+          },
+        ),
+
+      this.repository
+        .updateApplicant(
+          conversion.applicant_id,
+          {
+            status:
+              "accepted",
+
+            updated_by:
+              actorId,
+          },
+        ),
+    ]);
+
+    return reversedConversion;
+  }
+
   async getDashboardMetrics(
     overrides = {},
   ) {

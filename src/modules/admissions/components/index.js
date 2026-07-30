@@ -108,3 +108,12 @@ export {
 export {
   default as OfferWorkflowDialog,
 } from "./OfferWorkflowDialog";
+export { default as EnrollmentOverview }
+  from "./EnrollmentOverview";
+
+export { default as EnrollmentWorkflowDialog }
+  from "./EnrollmentWorkflowDialog";
+export { default as EnrollmentWorkspace }
+  from "./EnrollmentWorkspace";
+export { default as EnrollmentDialog }
+  from "./EnrollmentDialog";

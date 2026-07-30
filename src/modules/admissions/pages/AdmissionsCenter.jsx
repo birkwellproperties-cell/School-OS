@@ -29,6 +29,8 @@ import {
   DecisionWorkspace,
   DecisionDialog,
   OfferWorkspace,
+  EnrollmentWorkspace,
+  EnrollmentDialog,
   OfferDialog,
   OfferWorkflowDialog,
   DocumentRequirementsManager,
@@ -83,7 +85,7 @@ function StatusBadge({ status }) {
 }
 
 function formatDate(value) {
-  if (!value) return "�";
+  if (!value) return "Ã¯Â¿Â½";
 
   return new Intl.DateTimeFormat(
     undefined,
@@ -147,6 +149,16 @@ function AdmissionsWorkspace() {
   ] = useState(null);
 
   const [
+    enrollmentDialogMode,
+    setEnrollmentDialogMode,
+  ] = useState(null);
+
+  const [
+    selectedEnrollmentRecord,
+    setSelectedEnrollmentRecord,
+  ] = useState(null);
+
+  const [
     offerWorkflowAction,
     setOfferWorkflowAction,
   ] = useState(null);
@@ -187,6 +199,11 @@ function AdmissionsWorkspace() {
     setSelectedOfferRecord(null);
   };
 
+  const closeEnrollmentDialog = () => {
+    setEnrollmentDialogMode(null);
+    setSelectedEnrollmentRecord(null);
+  };
+
   const closeOfferWorkflowDialog = () => {
     setOfferWorkflowAction(null);
     setWorkflowOffer(null);
@@ -216,6 +233,13 @@ function AdmissionsWorkspace() {
     applications,
     decisions,
     offers,
+
+    createEnrollmentConversion,
+    updateEnrollmentConversion,
+
+    enrollmentMutationLoading,
+    enrollmentMutationError,
+    clearEnrollmentMutationError,
 
     createOffer,
     updateOffer,
@@ -680,6 +704,61 @@ function AdmissionsWorkspace() {
           />
         )}
 
+      {enrollmentDialogMode && (
+        <EnrollmentDialog
+          open
+          mode={
+            enrollmentDialogMode
+          }
+          conversion={
+            selectedEnrollmentRecord
+          }
+          offers={
+            offers?.items ||
+            offers ||
+            []
+          }
+          loading={
+            enrollmentMutationLoading
+          }
+          error={
+            enrollmentMutationError
+          }
+          onClose={
+            closeEnrollmentDialog
+          }
+          onSave={async (
+            payload,
+          ) => {
+            if (
+              enrollmentDialogMode ===
+              "edit"
+            ) {
+              const conversionId =
+                selectedEnrollmentRecord
+                  ?.id;
+
+              if (!conversionId) {
+                throw new Error(
+                  "The enrollment conversion id is required.",
+                );
+              }
+
+              await updateEnrollmentConversion(
+                conversionId,
+                payload,
+              );
+            } else {
+              await createEnrollmentConversion(
+                payload,
+              );
+            }
+
+            closeEnrollmentDialog();
+          }}
+        />
+      )}
+
       <ConvertInquiryDialog
         open={Boolean(
           conversionInquiry,
@@ -818,6 +897,26 @@ function AdmissionsWorkspace() {
         onOfferWorkflowAction={
           openOfferWorkflowDialog
         }
+      />
+      <EnrollmentWorkspace
+        onCreateEnrollment={() => {
+          clearEnrollmentMutationError?.();
+          setSelectedEnrollmentRecord(null);
+          setEnrollmentDialogMode(
+            "create",
+          );
+        }}
+        onEditEnrollment={(
+          conversion,
+        ) => {
+          clearEnrollmentMutationError?.();
+          setSelectedEnrollmentRecord(
+            conversion,
+          );
+          setEnrollmentDialogMode(
+            "edit",
+          );
+        }}
       />
 
       <div className="grid gap-6 xl:grid-cols-2">

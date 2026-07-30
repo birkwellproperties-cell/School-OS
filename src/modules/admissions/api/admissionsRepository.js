@@ -1,4 +1,4 @@
-﻿import { supabase } from "../../../services/supabase";
+import { supabase } from "../../../services/supabase";
 
 import {
   AdmissionsTable,
@@ -1665,6 +1665,73 @@ export async function getEnrollmentConversion(
   });
 }
 
+export async function createEnrollmentConversion(
+  payload,
+) {
+  const {
+    data,
+    error,
+  } = await supabase
+    .from(
+      AdmissionsTable.ENROLLMENT_CONVERSIONS,
+    )
+    .insert(payload)
+    .select()
+    .single();
+
+  if (error) {
+    throwRepositoryError({
+      error,
+      operation:
+        "createEnrollmentConversion",
+      table:
+        AdmissionsTable.ENROLLMENT_CONVERSIONS,
+      fallbackMessage:
+        "Unable to create the enrollment conversion.",
+    });
+  }
+
+  return data;
+}
+
+export async function updateEnrollmentConversion(
+  id,
+  updates,
+) {
+  const {
+    data,
+    error,
+  } = await supabase
+    .from(
+      AdmissionsTable.ENROLLMENT_CONVERSIONS,
+    )
+    .update(updates)
+    .eq(
+      "id",
+      id,
+    )
+    .is(
+      "deleted_at",
+      null,
+    )
+    .select()
+    .single();
+
+  if (error) {
+    throwRepositoryError({
+      error,
+      operation:
+        "updateEnrollmentConversion",
+      table:
+        AdmissionsTable.ENROLLMENT_CONVERSIONS,
+      fallbackMessage:
+        "Unable to update the enrollment conversion.",
+    });
+  }
+
+  return data;
+}
+
 async function countRows({
   table,
   filters = [],
@@ -2059,6 +2126,9 @@ export const admissionsRepository = Object.freeze({
 
   getEnrollmentConversions,
   getEnrollmentConversion,
+
+  createEnrollmentConversion,
+  updateEnrollmentConversion,
 
   getDashboardMetrics,
 });

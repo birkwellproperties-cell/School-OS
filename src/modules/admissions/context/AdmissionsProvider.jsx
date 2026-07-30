@@ -38,6 +38,9 @@ import useDecisionState
 import useOfferState
   from "./useOfferState";
 
+import useEnrollmentState
+  from "./useEnrollmentState";
+
 import useApplicationDocumentRequirementState
   from "./useApplicationDocumentRequirementState";
 
@@ -620,6 +623,37 @@ export default function AdmissionsProvider({
       refreshDecisions:
         decisionState
           .refreshDecisions,
+
+      refreshDashboard,
+    });
+
+  const enrollmentState =
+    useEnrollmentState({
+      service,
+
+      workspaceReady,
+      authorizationReady,
+
+      canViewAdmissions,
+      canCreateAdmissions,
+      canEditAdmissions,
+
+      currentUserId:
+        user?.id ?? null,
+
+      selectedAdmissionCycleId,
+
+      refreshApplications:
+        applicationState
+          .refreshApplications,
+
+      refreshApplicants:
+        applicantState
+          .refreshApplicants,
+
+      refreshOffers:
+        offerState
+          .refreshOffers,
 
       refreshDashboard,
     });
@@ -1402,6 +1436,7 @@ export default function AdmissionsProvider({
       ...applicationState,
       ...decisionState,
       ...offerState,
+      ...enrollmentState,
       ...applicationDocumentRequirementState,
       ...applicationDocumentState,
 
@@ -1452,6 +1487,7 @@ export default function AdmissionsProvider({
       applicationState,
       decisionState,
       offerState,
+      enrollmentState,
       applicationDocumentRequirementState,
       applicationDocumentState,
 
